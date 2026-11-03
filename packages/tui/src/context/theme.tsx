@@ -18,7 +18,8 @@ import {
   type ThemeDocumentSource,
 } from "../theme"
 import { generateSystem, terminalMode } from "../theme/system"
-import { discoverThemes } from "../theme/discovery"
+import { discoverSkins, discoverThemes } from "../theme/discovery"
+import { setCustomSkins } from "../skin"
 import { createComponentTheme, type ComponentTheme } from "../theme/component"
 import { createEffect, createMemo, createSignal, onCleanup, onMount, type Accessor, type ParentProps } from "solid-js"
 import { createStore, produce } from "solid-js/store"
@@ -29,7 +30,7 @@ import { DevTools } from "../devtools"
 import { configDirectories } from "../util/config-directories"
 
 const themePerformance = DevTools.register({ id: "theme-performance", title: "Theme performance" })
-export type ThemeError = { name: string; error: Error }
+export type ThemeError = { name: string; error: Error; kind: "theme" | "skin" }
 type ThemeErrorHandler = (event: ThemeError) => void
 
 function createThemeErrors() {
@@ -37,8 +38,8 @@ function createThemeErrors() {
   let pending: ThemeError | undefined
 
   return {
-    emit(name: string, cause: unknown) {
-      const event = { name, error: cause instanceof Error ? cause : new Error(String(cause)) }
+    emit(name: string, cause: unknown, kind: ThemeError["kind"] = "theme") {
+      const event = { name, kind, error: cause instanceof Error ? cause : new Error(String(cause)) }
       if (handler) {
         handler(event)
         return
@@ -62,12 +63,16 @@ const themeErrors = createThemeErrors()
 
 export type ThemeSource = Readonly<{
   discover(): Promise<Record<string, unknown>>
+  discoverSkins?(): Promise<Record<string, unknown>>
   subscribeRefresh?(refresh: () => void): () => void
 }>
 
 export const createThemeSource = (config: string): ThemeSource => ({
   async discover() {
     return discoverThemes(configDirectories(config, process.cwd()))
+  },
+  async discoverSkins() {
+    return discoverSkins(configDirectories(config, process.cwd()))
   },
   subscribeRefresh(refresh) {
     process.on("SIGUSR2", refresh)
@@ -158,12 +163,22 @@ const themeContext = createSimpleContext({
     })
 
     function syncCustomThemes() {
-      return themes
-        .discover()
-        .then((themes) => {
-          setCustomThemes(themes)
+      // Skins can embed themes, so they register before the selected theme resolves below.
+      const skins = themes
+        .discoverSkins?.()
+        .then((sources) => {
+          for (const failure of setCustomSkins(sources)) themeErrors.emit(failure.id, failure.error, "skin")
         })
-        .catch(() => setStore("active", "opencode"))
+        .catch((error) => themeErrors.emit("skins", error, "skin"))
+      return Promise.all([
+        skins,
+        themes
+          .discover()
+          .then((themes) => {
+            setCustomThemes(themes)
+          })
+          .catch(() => setStore("active", "opencode")),
+      ])
     }
 
     onMount(() => {

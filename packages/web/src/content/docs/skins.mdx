@@ -1,0 +1,93 @@
+---
+title: Skins
+description: Restyle the whole TUI with a bundled skin, or make your own.
+---
+
+A skin changes more than colors. Like the swappable faces of early-2000s media players, a skin bundles a look for the whole TUI:
+
+- **Theme**: the color theme it applies. A skin can name any [theme](/docs/themes) or embed its own.
+- **Border**: the rail drawn beside messages, the prompt, and panels.
+- **Spinner**: the activity indicator.
+- **Logo**: the art on the home screen.
+
+By default, OpenCode uses the `opencode` skin, which is the stock look.
+
+---
+
+## Using a skin
+
+Run the `/skins` command to browse skins. Moving through the list previews each skin live; press enter to keep it or escape to restore your previous look. You can also pick one under **Settings → Appearance → Skin**, or set it in `tui.json`.
+
+```json title="tui.json" {3}
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "skin": "lcd-classic"
+}
+```
+
+Picking a skin also applies its theme. You can still switch themes afterwards with `/themes`; the skin keeps its border, spinner, and logo.
+
+---
+
+## Built-in skins
+
+| Name          | Description                                                  |
+| ------------- | ------------------------------------------------------------ |
+| `opencode`    | The stock look                                               |
+| `lcd-classic` | Charcoal player chrome with a glowing green LCD readout      |
+| `chrome-y2k`  | Brushed silver panels and electric blue                      |
+| `neon-arcade` | Deep violet cabinet glow with hot pink and cyan neon         |
+| `amber-crt`   | Monochrome amber phosphor and a blinking block cursor        |
+| `bubblegum`   | Pastel pink and aqua                                         |
+| `plain-ascii` | Pure 7-bit chrome for any terminal; keeps your current theme |
+
+Skins that embed a theme also add it to `/themes` under the skin's name.
+
+---
+
+## Custom skins
+
+Skins are JSON files loaded from the same directories as themes, under `skins/` instead of `themes/`. Later directories override earlier ones:
+
+1. **Built-in skins**: embedded in the binary
+2. **User config directory**: `~/.config/opencode/skins/*.json` or `$XDG_CONFIG_HOME/opencode/skins/*.json`
+3. **Project root directory**: `<project-root>/.opencode/skins/*.json`
+4. **Current working directory**: `./.opencode/skins/*.json`
+
+The file name is the skin's ID. To share a skin, share its JSON file. Skins are reloaded together with themes, so after editing one, send the TUI `SIGUSR2` or restart it.
+
+```bash no-frame
+mkdir -p ~/.config/opencode/skins
+vim ~/.config/opencode/skins/my-skin.json
+```
+
+---
+
+### JSON format
+
+```json title="my-skin.json"
+{
+  "name": "My Skin",
+  "description": "Shown under the name in /skins",
+  "author": "you",
+  "theme": "tokyonight",
+  "border": "double",
+  "spinner": "equalizer",
+  "logo": ["+------------------+", "|  my opencode     |", "+------------------+"]
+}
+```
+
+Only `name` is required.
+
+- `theme`: the name of any theme, or a complete theme object in the [theme JSON format](/docs/themes#json-format) to embed one. Leave it out to keep the user's current theme.
+- `border`: a preset, or an object with a single-cell `vertical` glyph and an optional `cap` that ends the rail below the prompt, such as `{ "vertical": "▐" }`. Presets:
+  - `heavy` `┃` (default)
+  - `light` `│`
+  - `double` `║`
+  - `block` `▌`
+  - `dashed` `╏`
+  - `ascii` `|`
+- `spinner`: a preset, or an object with `frames` (an array of strings) and an optional `interval` in milliseconds (default `80`, minimum `16`). Presets: `dots` (default), `line`, `arcs`, `equalizer`, `blocks`, `pulse`, `stars`, `cursor`.
+- `logo`: lines of plain text for the home screen. It is shown in the theme's text color and falls back to the stock logo when the terminal is narrower than the widest line.
+
+If a skin file is invalid, OpenCode shows an error and leaves it out of the list.

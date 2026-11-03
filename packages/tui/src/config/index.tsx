@@ -76,6 +76,9 @@ export const Info = Schema.Struct({
       }),
     }),
   ).annotate({ description: "Color theme settings" }),
+  skin: Schema.optional(Schema.String).annotate({
+    description: "Interface skin: a bundled theme, border rail, spinner and logo. Defaults to 'opencode'",
+  }),
   keybinds: Schema.optional(TuiKeybind.KeybindOverrides).annotate({ description: "Custom key bindings" }),
   plugins: Schema.optional(Schema.Array(Plugin)).annotate({
     description: "Ordered plugin enablement directives and external package declarations",

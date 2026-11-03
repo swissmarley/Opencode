@@ -1,0 +1,7 @@
+{
+  "name": "Plain ASCII",
+  "description": "Pure 7-bit chrome for any terminal; keeps your current colors",
+  "border": "ascii",
+  "spinner": "line",
+  "logo": ["+-------------------------+", "|  o p e n c o d e  v2.x  |", "+-------------------------+"]
+}

@@ -15,6 +15,7 @@ export { DEFAULT_THEMES, type Theme, type ThemeV1Json } from "./v1"
 export type ThemeDocumentSource = Record<string, unknown>
 
 let customThemes: Record<string, ThemeDocumentSource> = {}
+let skinThemes: Record<string, ThemeDocumentSource> = {}
 let systemTheme: ThemeDocumentSource | undefined
 const listeners = new Set<(themes: Record<string, ThemeDocumentSource>) => void>()
 const parsed = { current: new WeakMap<object, ThemeDocument>(), newDesigns: new WeakMap<object, ThemeDocument>() }
@@ -40,10 +41,11 @@ export function getOpenCode2Theme() {
 }
 
 function listThemes(): Record<string, ThemeDocumentSource> {
-  // Priority: defaults < custom files < generated system.
+  // Priority: defaults < themes embedded in skins < custom files < generated system.
   const themes: Record<string, ThemeDocumentSource> = {
     ...DEFAULT_THEMES,
     opencode: getOpenCodeTheme(),
+    ...skinThemes,
     ...customThemes,
   }
   return {
@@ -85,6 +87,13 @@ export function subscribeThemes(listener: (themes: Record<string, ThemeDocumentS
 
 export function setCustomThemes(themes: Record<string, unknown>) {
   customThemes = Object.fromEntries(
+    Object.entries(themes).filter((entry): entry is [string, ThemeDocumentSource] => isThemeSource(entry[1])),
+  )
+  syncThemes()
+}
+
+export function setSkinThemes(themes: Record<string, unknown>) {
+  skinThemes = Object.fromEntries(
     Object.entries(themes).filter((entry): entry is [string, ThemeDocumentSource] => isThemeSource(entry[1])),
   )
   syncThemes()

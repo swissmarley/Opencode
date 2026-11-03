@@ -33,6 +33,7 @@ import {
   onCleanup,
   batch,
   Show,
+  on,
 } from "solid-js"
 import {
   TuiLifecycleProvider,
@@ -73,6 +74,8 @@ import { DialogPair } from "./component/dialog-pair"
 import { DialogHighlights } from "./component/dialog-highlights"
 import { claim } from "./util/highlights"
 import { DialogThemeList } from "./component/dialog-theme-list"
+import { DialogSkinList } from "./component/dialog-skin-list"
+import { allSkins, DEFAULT_SKIN, setActiveSkin } from "./skin"
 import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "./component/dialog-agent"
 import { DialogSessionList } from "./component/dialog-session-list"
@@ -173,6 +176,7 @@ const appBindingCommands = [
   "theme.switch",
   "theme.switch_mode",
   "theme.mode.lock",
+  "skin.switch",
   "help.show",
   "docs.open",
   "diff.open",
@@ -752,6 +756,20 @@ function App() {
       .catch(toast.error)
   })
 
+  const themes = useThemes()
+  createEffect(
+    on(
+      () => config.data.skin ?? DEFAULT_SKIN,
+      (id, previous) => {
+        setActiveSkin(id)
+        // At startup the configured theme already reflects the skin, or a theme picked after it.
+        if (previous === undefined) return
+        const theme = allSkins()[id]?.theme
+        if (theme && theme !== themes.selected) themes.set(theme)
+      },
+    ),
+  )
+
   const connected = useConnected()
   const appCommands = createMemo(() =>
     [
@@ -1135,6 +1153,15 @@ function App() {
         slash: { name: "themes" },
         run: () => {
           dialog.replace(() => <DialogThemeList />)
+        },
+        category: "System",
+      },
+      {
+        name: "skin.switch",
+        title: "Switch skin",
+        slash: { name: "skins", aliases: ["skin"] },
+        run: () => {
+          dialog.replace(() => <DialogSkinList />)
         },
         category: "System",
       },

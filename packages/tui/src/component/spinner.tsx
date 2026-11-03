@@ -4,8 +4,8 @@ import { useConfig } from "../config"
 import type { JSX } from "@opentui/solid"
 import type { RGBA } from "@opentui/core"
 import "./spinner-renderable"
-import { SPINNER_FRAMES } from "./spinner-frames"
 import { ShimmerText } from "./shimmer-text"
+import { currentSkin } from "../skin"
 
 export { SPINNER_FRAMES } from "./spinner-frames"
 
@@ -13,10 +13,12 @@ export function Spinner(props: { children?: JSX.Element; color?: RGBA; shimmer?:
   const theme = useTheme()
   const config = useConfig().data
   const color = () => props.color ?? theme.text.muted
+  const spinner = () => currentSkin().spinner
   const [frame, setFrame] = createSignal(0)
   createEffect(() => {
     if (!(config.animations ?? true) || !props.shimmer) return
-    const timer = setInterval(() => setFrame((value) => (value + 1) % SPINNER_FRAMES.length), 80)
+    const frames = spinner().frames.length
+    const timer = setInterval(() => setFrame((value) => (value + 1) % frames), spinner().interval)
     onCleanup(() => clearInterval(timer))
   })
   // A bare spinner beside a long sibling shrinks to a fractional width that rounds to 0, so the
@@ -31,7 +33,7 @@ export function Spinner(props: { children?: JSX.Element; color?: RGBA; shimmer?:
         fallback={
           <box flexDirection="row" gap={1} flexShrink={props.children ? 1 : 0}>
             <box flexShrink={0}>
-              <spinner frames={SPINNER_FRAMES} interval={80} color={color()} />
+              <spinner frames={spinner().frames} interval={spinner().interval} color={color()} />
             </box>
             <Show when={props.children}>
               <text fg={color()}>{props.children}</text>
@@ -41,7 +43,7 @@ export function Spinner(props: { children?: JSX.Element; color?: RGBA; shimmer?:
       >
         {(shimmer) => (
           <ShimmerText fg={color()} shimmer={shimmer()}>
-            {SPINNER_FRAMES[frame()]} {props.children}
+            {spinner().frames[frame() % spinner().frames.length]} {props.children}
           </ShimmerText>
         )}
       </Show>

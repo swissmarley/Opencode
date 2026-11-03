@@ -4,6 +4,8 @@ import { useTerminalDimensions } from "@opentui/solid"
 import { useTheme } from "../context/theme"
 import { tint } from "../theme/color"
 import { go, logo } from "../logo"
+import { currentSkin } from "../skin"
+import { stringWidth } from "#string-width"
 
 export function Logo() {
   const theme = useTheme()
@@ -49,9 +51,25 @@ export function Logo() {
     })
   }
 
+  // Skin logos are plain text: the markup characters of the stock logo have no meaning in them.
+  const skinLogo = () => {
+    const lines = currentSkin().logo
+    if (!lines) return
+    if (dimensions().width < Math.max(...lines.map((line) => stringWidth(line)))) return
+    return lines
+  }
+
   return (
     <box>
-      {dimensions().height < 12 ? null : dimensions().width < 22 ? (
+      {dimensions().height < 12 ? null : skinLogo() ? (
+        <For each={skinLogo()}>
+          {(line) => (
+            <text fg={theme.text.base} attributes={TextAttributes.BOLD} selectable={false}>
+              {line}
+            </text>
+          )}
+        </For>
+      ) : dimensions().width < 22 ? (
         <For each={go.right.slice(1)}>
           {(line) => <box flexDirection="row">{renderLine(line, theme.text.base, true)}</box>}
         </For>
