@@ -22,6 +22,9 @@ the model's streaming output, and it never covers or shifts any part of the inte
 - **Streaming boost.** While the model is replying, the vortex spins faster and its waves tighten. It eases back when
   the reply ends.
 - **Watermark mode.** Carves the word OPENCODE out of the middle of the flow as empty space.
+- **Matrix mode.** Swaps the vortex for falling columns of green glyphs. The rain parts around your mouse pointer and
+  seeds new streams in the columns it crosses, each keystroke drops fast bright streams near the cursor, and a
+  streaming reply makes the rain heavier and faster. Like the vortex, it only fills empty background.
 - **Light on resources.** It animates at 24 frames per second only while something is happening. After 30 seconds with
   no input and no streaming, it slows to a stop and uses no CPU until you move or type again.
 
@@ -117,8 +120,9 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
 
 - **Move your mouse** across the screen to stir the flow.
 - **Type in the prompt** to send ripples out from the cursor.
-- **Press `Ctrl+X`, then `V`** to switch between the three modes: `vortex` → `watermark` → `off`. A short message
-  confirms the new mode, and OpenCode remembers your choice.
+- **Press `Ctrl+X`, then `V`** to cycle through the moods: `vortex` → `watermark` → `matrix` → `off`. A short
+  message confirms the new mood, and OpenCode remembers your choice.
+- **Type `/mood:matrix`, `/mood:vortex`, `/mood:watermark` or `/mood:off`** in the prompt to jump straight to a mood.
 
 ### Step 7 (optional): Build a standalone `opencode` binary
 
@@ -171,11 +175,11 @@ apply while OpenCode is running.
 }
 ```
 
-| Setting      | Values                             | What it does                                                                                                          |
-| ------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `background` | `"vortex"`, `"watermark"`, `"off"` | Picks the background. Defaults to `"vortex"`.                                                                         |
-| `animations` | `true`, `false`                    | With `false`, the background defaults to `"off"`. If you also set `background` yourself, it shows as a still picture. |
-| `mouse`      | `true`, `false`                    | Mouse capture. The mouse wake needs this on (it is on by default).                                                    |
+| Setting      | Values                                         | What it does                                                                                                          |
+| ------------ | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `background` | `"vortex"`, `"watermark"`, `"matrix"`, `"off"` | Picks the background (the mood). Defaults to `"vortex"`.                                                              |
+| `animations` | `true`, `false`                                | With `false`, the background defaults to `"off"`. If you also set `background` yourself, it shows as a still picture. |
+| `mouse`      | `true`, `false`                                | Mouse capture. The mouse wake needs this on (it is on by default).                                                    |
 
 > [!NOTE]
 > Your editor may underline `background` as unknown, because the published OpenCode settings schema doesn't include
@@ -309,8 +313,9 @@ The feature lives in the terminal UI package:
 | File                                              | Purpose                                                                                                |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `packages/tui/src/ui/vortex.ts`                   | The shader: the noise field, glyph ramp, colour palette and compositor.                                |
+| `packages/tui/src/ui/matrix.ts`                   | The matrix mood: falling drops, glyph flicker, pointer parting and its green palette.                  |
 | `packages/tui/src/component/vortex-background.ts` | Hooks the shader into the renderer: the 24 FPS ticker, mouse, keystrokes, streaming and idle throttle. |
-| `packages/tui/src/app.tsx`                        | Mounts the background and registers the `app.toggle.background` command.                               |
+| `packages/tui/src/app.tsx`                        | Mounts the background and registers `app.toggle.background` and the `/mood:<name>` commands.           |
 | `packages/tui/src/config/index.tsx`               | Adds the `background` setting.                                                                         |
 | `packages/tui/src/config/keybind.ts`              | Adds the default `<leader>v` shortcut.                                                                 |
 
