@@ -141,6 +141,7 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
 - **Type in the prompt** to send ripples out from the cursor.
 - **Press `Ctrl+X`, then `V`** to cycle through the moods: `vortex` → `watermark` → `matrix` → `off`. A short
   message confirms the new mood, and OpenCode remembers your choice.
+- **Type `/mood`** to browse the moods with a live preview behind the list, then press Enter to keep one.
 - **Type `/mood:matrix`, `/mood:vortex`, `/mood:watermark` or `/mood:off`** in the prompt to jump straight to a mood.
 - **Type `/skins`** to browse the skins with a live preview, then press Enter to keep one.
 

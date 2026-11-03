@@ -6,6 +6,9 @@ import { DialogSelect, DialogSelectChoice } from "../ui/dialog-select"
 import { useToast } from "../ui/toast"
 import { DialogThemeList } from "./dialog-theme-list"
 import { DialogSkinList } from "./dialog-skin-list"
+import { DialogMoodList, MOODS } from "./dialog-mood-list"
+import { VORTEX_MODES } from "../ui/vortex"
+import { vortexMode } from "./vortex-background"
 import { allSkins, DEFAULT_SKIN } from "../skin"
 
 type Setting = {
@@ -49,6 +52,20 @@ export const settings: Setting[] = [
     format: (value) => allSkins()[String(value)]?.name ?? String(value),
     open: (dialog) =>
       dialog.replace(() => <DialogSkinList onClose={() => dialog.replace(() => <DialogConfig current="skin" />)} />),
+  },
+  {
+    title: "Mood",
+    category: "Appearance",
+    path: ["background"],
+    description: "Animated background behind the interface",
+    default: "vortex",
+    values: VORTEX_MODES,
+    keywords: ["background", "vortex", "matrix", "watermark", "animation"],
+    format: (value) => Object.entries(MOODS).find(([mood]) => mood === value)?.[1].title ?? String(value),
+    open: (dialog) =>
+      dialog.replace(() => (
+        <DialogMoodList onClose={() => dialog.replace(() => <DialogConfig current="background" />)} />
+      )),
   },
   {
     title: "Color mode",
@@ -407,6 +424,7 @@ export function DialogConfig(props: { current?: string }) {
       return (result as Record<string, unknown>)[key]
     }, config.data)
     if (setting.path.join(".") === "theme.name") return current ?? themes.selected
+    if (setting.path.join(".") === "background") return vortexMode(config.data)
     return current ?? setting.default
   }
   const values = (setting: Setting) => {

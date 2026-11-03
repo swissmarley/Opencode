@@ -75,6 +75,7 @@ import { DialogHighlights } from "./component/dialog-highlights"
 import { claim } from "./util/highlights"
 import { DialogThemeList } from "./component/dialog-theme-list"
 import { DialogSkinList } from "./component/dialog-skin-list"
+import { DialogMoodList } from "./component/dialog-mood-list"
 import { allSkins, DEFAULT_SKIN, setActiveSkin } from "./skin"
 import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "./component/dialog-agent"
@@ -187,6 +188,7 @@ const appBindingCommands = [
   "terminal.title.toggle",
   "app.toggle.animations",
   "app.toggle.background",
+  "mood.switch",
   "mood.vortex",
   "mood.watermark",
   "mood.matrix",
@@ -1164,7 +1166,7 @@ function App() {
       {
         name: "skin.switch",
         title: "Switch skin",
-        slash: { name: "skins", aliases: ["skin"] },
+        slash: { name: "skins" },
         run: () => {
           dialog.replace(() => <DialogSkinList />)
         },
@@ -1293,6 +1295,15 @@ function App() {
           toast.show({ variant: "info", message: `Background: ${next}`, duration: 1500 })
           dialog.clear()
         },
+      },
+      {
+        name: "mood.switch",
+        title: "Switch mood",
+        slash: { name: "mood" },
+        run: () => {
+          dialog.replace(() => <DialogMoodList />)
+        },
+        category: "System",
       },
       // One `/mood:<name>` command per mood, so a mood can be picked directly instead of cycled to.
       ...VORTEX_MODES.map((mood) => ({

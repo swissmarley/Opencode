@@ -37,6 +37,8 @@ export function Dialog(
   props: ParentProps<{
     size?: DialogSize
     centered?: boolean
+    /** False drops the dimmed backdrop, so the animated background stays visible around the dialog. */
+    backdrop?: boolean
     onClose: () => void
   }>,
 ) {
@@ -67,7 +69,7 @@ export function Dialog(
         paddingTop={props.centered ? 0 : dimensions().height / 4}
         left={0}
         top={0}
-        backgroundColor={RGBA.fromInts(0, 0, 0, 150)}
+        backgroundColor={props.backdrop === false ? undefined : RGBA.fromInts(0, 0, 0, 150)}
       >
         <box
           onMouseUp={(e: { stopPropagation(): void }) => {
@@ -312,6 +314,7 @@ function init() {
     }[],
     size: "medium" as DialogSize,
     centered: false,
+    backdrop: true,
   })
 
   const renderer = useRenderer()
@@ -393,6 +396,7 @@ function init() {
       batch(() => {
         setStore("size", "medium")
         setStore("centered", false)
+        setStore("backdrop", true)
         setStore("stack", [])
       })
       refocus()
@@ -408,6 +412,7 @@ function init() {
       batch(() => {
         setStore("size", options?.size ?? "medium")
         setStore("centered", false)
+        setStore("backdrop", true)
         setStore("stack", [
           {
             element: input,
@@ -426,6 +431,9 @@ function init() {
     get centered() {
       return store.centered
     },
+    get backdrop() {
+      return store.backdrop
+    },
     get key() {
       return store.stack.at(-1)?.key
     },
@@ -434,6 +442,10 @@ function init() {
     },
     setCentered(centered: boolean) {
       setStore("centered", centered)
+    },
+    /** Lets a dialog that previews the animated background, such as `/mood`, drop the dimmed backdrop. */
+    setBackdrop(backdrop: boolean) {
+      setStore("backdrop", backdrop)
     },
   }
 }
@@ -470,7 +482,12 @@ export function DialogProvider(props: ParentProps) {
         }
       >
         <Show when={value.stack.length}>
-          <Dialog onClose={() => value.clear()} size={value.size} centered={value.centered}>
+          <Dialog
+            onClose={() => value.clear()}
+            size={value.size}
+            centered={value.centered}
+            backdrop={value.backdrop}
+          >
             {/* Render each entry once: inserting the element function directly would re-run it, remounting
                 the dialog with fresh state, whenever a signal it reads at its root (e.g. a top-level <Show>) changes. */}
             <Show when={value.stack.at(-1)} keyed>
