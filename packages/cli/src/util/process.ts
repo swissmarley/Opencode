@@ -7,6 +7,10 @@ export function selfCommand() {
   if (runtime !== "bun" && runtime !== "node" && runtime !== "nodejs") return [process.execPath]
   if (!entrypoint) throw new Error("Failed to resolve CLI entrypoint")
   if (runtime === "node" || runtime === "nodejs") return [process.execPath, ...nodeFlags(), entrypoint]
+  // From source, Bun only applies packages/cli/bunfig.toml (and its Solid JSX preload) when started in that directory.
+  // Child processes start in the user's project instead, where `.tsx` would compile against React, so pass it along.
+  if (/\.tsx?$/.test(entrypoint))
+    return [process.execPath, `--preload=${Bun.resolveSync("@opentui/solid/preload", import.meta.dir)}`, entrypoint]
   return [process.execPath, entrypoint]
 }
 
