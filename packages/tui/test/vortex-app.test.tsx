@@ -24,10 +24,10 @@ test("the app composites the vortex behind the UI and the toggle cycles it off",
 
   setup.mockInput.pressKey("F7")
   await setup.waitFor(() => setup.config().background === "watermark")
-  setup.mockInput.pressKey("F7")
-  await setup.waitFor(() => setup.config().background === "matrix")
-  setup.mockInput.pressKey("F7")
-  await setup.waitFor(() => setup.config().background === "off")
+  for (const mood of ["matrix", "ripple", "warp", "embers", "aurora", "off"]) {
+    setup.mockInput.pressKey("F7")
+    await setup.waitFor(() => setup.config().background === mood)
+  }
   // The mode toast clears after a moment; compare against the settled frame.
   const off = await settled(setup, (frame) => backgroundCells(frame) === 0 && !frame.includes("Background: "))
 

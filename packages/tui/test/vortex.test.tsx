@@ -201,11 +201,9 @@ test("composited frames keep the rendered layout intact", async () => {
   }
 })
 
-test("the toggle cycles vortex, watermark, matrix, then off", () => {
-  expect(nextVortexMode("vortex")).toBe("watermark")
-  expect(nextVortexMode("watermark")).toBe("matrix")
-  expect(nextVortexMode("matrix")).toBe("off")
-  expect(nextVortexMode("off")).toBe("vortex")
+test("the toggle cycles through every mood, then off", () => {
+  const order = ["vortex", "watermark", "matrix", "ripple", "warp", "embers", "aurora", "off"] as const
+  order.forEach((mood, i) => expect(nextVortexMode(mood)).toBe(order[(i + 1) % order.length]!))
 })
 
 test("the background defaults to the vortex unless animations are off", () => {

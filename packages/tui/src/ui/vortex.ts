@@ -12,8 +12,9 @@ import { logo } from "../logo"
  * This module holds only state and math. `component/vortex-background.ts` wires it to the renderer.
  */
 
-// Each mode is a "mood": the animated background behind the interface. `matrix` lives in `ui/matrix.ts`.
-export const VORTEX_MODES = ["vortex", "watermark", "matrix", "off"] as const
+// Each mode is a "mood": the animated background behind the interface. The vortex and its watermark live here; every
+// other mood has its own module (`ui/matrix.ts`, `ui/ripple.ts`, `ui/warp.ts`, `ui/embers.ts`, `ui/aurora.ts`).
+export const VORTEX_MODES = ["vortex", "watermark", "matrix", "ripple", "warp", "embers", "aurora", "off"] as const
 export type VortexMode = (typeof VORTEX_MODES)[number]
 export const VORTEX_FPS = 24
 export const VORTEX_IDLE_AFTER = 30_000
@@ -215,23 +216,28 @@ const VORTEX_STOPS = {
 
 type PaletteStops = Readonly<Record<"dark" | "light", readonly (readonly [number, number, number])[]>>
 
-/** Blends a mood's colour stops toward the theme background, picking the light or dark set by its luminance. */
-export function backgroundPalette(background: readonly [number, number, number], palette: PaletteStops) {
+/**
+ * Blends a mood's colour stops toward the theme background, picking the light or dark set by its luminance. A mood
+ * with several colour tones passes one set of stops per tone; the lookups are laid end to end, in tone order.
+ */
+export function backgroundPalette(background: readonly [number, number, number], ...palettes: PaletteStops[]) {
   const light = (0.2126 * background[0] + 0.7152 * background[1] + 0.0722 * background[2]) / 255 > 0.5
-  const stops = light ? palette.light : palette.dark
-  const lut = new Uint8Array(LEVELS * 3)
-  for (let i = 0; i < LEVELS; i++) {
-    const level = i / (LEVELS - 1)
-    const scaled = level * (stops.length - 1)
-    const index = Math.min(stops.length - 2, Math.floor(scaled))
-    const t = scaled - index
-    // Peak strength stays well below full so foreground text keeps clear contrast.
-    const strength = 0.22 + 0.33 * level
-    for (let c = 0; c < 3; c++) {
-      const color = stops[index]![c]! + (stops[index + 1]![c]! - stops[index]![c]!) * t
-      lut[i * 3 + c] = Math.round(background[c]! + (color - background[c]!) * strength)
+  const lut = new Uint8Array(palettes.length * LEVELS * 3)
+  palettes.forEach((palette, tone) => {
+    const stops = light ? palette.light : palette.dark
+    for (let i = 0; i < LEVELS; i++) {
+      const level = i / (LEVELS - 1)
+      const scaled = level * (stops.length - 1)
+      const index = Math.min(stops.length - 2, Math.floor(scaled))
+      const t = scaled - index
+      // Peak strength stays well below full so foreground text keeps clear contrast.
+      const strength = 0.22 + 0.33 * level
+      for (let c = 0; c < 3; c++) {
+        const color = stops[index]![c]! + (stops[index + 1]![c]! - stops[index]![c]!) * t
+        lut[(tone * LEVELS + i) * 3 + c] = Math.round(background[c]! + (color - background[c]!) * strength)
+      }
     }
-  }
+  })
   return lut
 }
 
@@ -243,8 +249,9 @@ export function backgroundPalette(background: readonly [number, number, number],
  * cells, panels with their own background, selections, links and wide-character continuations are left exactly as
  * drawn, and no background is ever modified.
  *
- * `glyphs` supplies the character for each cell instead of the density ramp; the matrix mood uses it, while the
- * field level still decides whether a cell is drawn and its colour.
+ * `glyphs` supplies the character for each cell instead of the density ramp; every mood but the vortex uses it,
+ * while the field level still decides whether a cell is drawn and its colour. `tones` picks, per cell, which of the
+ * palette's colour lookups to use (see `backgroundPalette`); without it every cell uses the first.
  */
 export function compositeVortex(
   cells: BufferAccess,
@@ -252,6 +259,7 @@ export function compositeVortex(
   palette: Uint8Array,
   base: Uint16Array,
   glyphs?: Uint32Array,
+  tones?: Uint8Array,
 ) {
   const width = cells.width
   const height = cells.height
@@ -287,7 +295,7 @@ export function compositeVortex(
         const level = field[i] ?? 0
         const glyph = Math.round(level * steps)
         if (glyph === 0) continue
-        const color = Math.round(level * (LEVELS - 1)) * 3
+        const color = ((tones ? tones[i]! * LEVELS : 0) + Math.round(level * (LEVELS - 1))) * 3
         const o = i * 4
         char[i] = glyphs ? glyphs[i]! : RAMP_CODES[glyph]!
         fg[o] = palette[color]!
@@ -339,13 +347,13 @@ function watermark(width: number, height: number) {
   return mask
 }
 
-function smoothstep(edge0: number, edge1: number, value: number) {
+export function smoothstep(edge0: number, edge1: number, value: number) {
   const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)))
   return t * t * (3 - 2 * t)
 }
 
 /** 2D simplex noise in roughly [-1, 1], with a permutation table shuffled from `seed`. */
-function simplex(seed: number) {
+export function simplex(seed: number) {
   const perm = new Uint8Array(512)
   const source = Uint8Array.from({ length: 256 }, (_, i) => i)
   let state = seed >>> 0 || 1

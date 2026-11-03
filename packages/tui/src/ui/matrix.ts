@@ -202,7 +202,7 @@ export const MATRIX_STOPS = {
   ],
 } as const
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   let state = seed >>> 0
   return () => {
     state = (state + 0x6d2b79f5) >>> 0

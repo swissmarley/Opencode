@@ -5,7 +5,10 @@ import { useConfig } from "../config"
 import { useData } from "../context/data"
 import { useRoute } from "../context/route"
 import { useThemes } from "../context/theme"
+import { AURORA_STOPS, createAurora } from "../ui/aurora"
+import { createEmbers, EMBERS_STOPS } from "../ui/embers"
 import { createMatrix, MATRIX_STOPS } from "../ui/matrix"
+import { createRipple, RIPPLE_STOPS } from "../ui/ripple"
 import {
   backgroundPalette,
   compositeVortex,
@@ -15,6 +18,7 @@ import {
   vortexPalette,
   type VortexMode,
 } from "../ui/vortex"
+import { createWarp, WARP_STOPS } from "../ui/warp"
 
 const SHOCK_INTERVAL = 90 // ms between keystroke shockwaves while typing quickly
 
@@ -35,9 +39,21 @@ export function nextVortexMode(mode: VortexMode): VortexMode {
   return VORTEX_MODES[(VORTEX_MODES.indexOf(mode) + 1) % VORTEX_MODES.length]!
 }
 
+// A mood that draws its own glyphs (and, for some, colour tones) instead of the vortex density ramp.
+type GlyphMood = {
+  field(width: number, height: number): Float32Array
+  readonly glyphs: Uint32Array
+  readonly tones?: Uint8Array
+  step(delta: number, streaming: boolean): boolean
+  poke(): void
+  move(x: number, y: number): void
+  shock(x: number, y: number): void
+}
+
 /**
- * Animated background ("mood") painted behind the whole TUI: the ASCII vortex, its watermark variant, or the
- * matrix rain. Each mood owns its own simulation; whichever is active receives the pointer, keys and ticks.
+ * Animated background ("mood") painted behind the whole TUI: the ASCII vortex, its watermark variant, the matrix
+ * rain, the ripple pond, the warp starfield, the embers fire or the aurora. Each mood owns its own simulation;
+ * whichever is active receives the pointer, keys and ticks.
  *
  * It runs as a renderer post-process pass, after every renderable has drawn into the frame, and only fills cells that
  * are still empty base background (see `compositeVortex`), so no pane, border, diff or styled text is ever overwritten
@@ -56,9 +72,25 @@ export function useVortexBackground() {
   const data = useData()
   const route = useRoute()
   const vortex = createVortex()
-  const matrix = createMatrix()
+  const moods: Record<Exclude<VortexMode, "vortex" | "watermark" | "off">, GlyphMood> = {
+    matrix: createMatrix(),
+    ripple: createRipple(),
+    warp: createWarp(),
+    embers: createEmbers(),
+    aurora: createAurora(),
+  }
+  const stops = {
+    matrix: [MATRIX_STOPS],
+    ripple: [RIPPLE_STOPS],
+    warp: WARP_STOPS,
+    embers: [EMBERS_STOPS],
+    aurora: AURORA_STOPS,
+  }
   const mode = createMemo(() => previewMood() ?? vortexMode(config.data))
-  const engine = () => (mode() === "matrix" ? matrix : vortex)
+  const engine = () => {
+    const current = mode()
+    return current === "vortex" || current === "watermark" || current === "off" ? vortex : moods[current]
+  }
   const animated = createMemo(() => mode() !== "off" && (config.data.animations ?? true))
   const streaming = createMemo(
     () => route.data.type === "session" && data.session.status(route.data.sessionID) === "running",
@@ -69,16 +101,20 @@ export function useVortexBackground() {
     // A transparent base (the system theme) shows the terminal's own background, so assume its mode's extreme.
     const background: [number, number, number] =
       a === 0 ? (themes.mode() === "light" ? [255, 255, 255] : [0, 0, 0]) : [r, g, b]
-    return mode() === "matrix" ? backgroundPalette(background, MATRIX_STOPS) : vortexPalette(background)
+    const current = mode()
+    if (current === "vortex" || current === "watermark" || current === "off") return vortexPalette(background)
+    return backgroundPalette(background, ...stops[current])
   })
 
   const paint = (buffer: OptimizedBuffer) => {
     const current = mode()
     if (current === "off") return
     buffer.withBuffers((cells) => {
-      if (current === "matrix")
-        return compositeVortex(cells, matrix.field(cells.width, cells.height), palette(), base().buffer, matrix.glyphs)
-      compositeVortex(cells, vortex.field(cells.width, cells.height, current), palette(), base().buffer)
+      if (current === "vortex" || current === "watermark")
+        return compositeVortex(cells, vortex.field(cells.width, cells.height, current), palette(), base().buffer)
+      const mood = moods[current]
+      const field = mood.field(cells.width, cells.height)
+      compositeVortex(cells, field, palette(), base().buffer, mood.glyphs, mood.tones)
     })
   }
 
