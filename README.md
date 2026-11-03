@@ -41,8 +41,8 @@
 
 > [!NOTE]
 > This is an unofficial fork of [OpenCode](https://github.com/anomalyco/opencode) that adds skins and animated
-> backgrounds ("moods": an interactive ASCII vortex and matrix rain) to the terminal UI. It is not built by the
-> OpenCode team and is not affiliated with them in any way. To set it up, see [SWISSMARLEY.md](SWISSMARLEY.md).
+> backgrounds ("moods": an interactive ASCII vortex, matrix rain, a rain pond, a starfield, a fire and an aurora) to
+> the terminal UI. It is not built by the OpenCode team and is not affiliated with them in any way. To set it up, see [SWISSMARLEY.md](SWISSMARLEY.md).
 
 [![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 
@@ -54,9 +54,9 @@
 >   `/skins`, or set `"skin"` in `tui.json`. Seven skins are built in, and you can add your own as JSON files in
 >   `skins/`. See [the skins docs](packages/web/src/content/docs/skins.mdx).
 > - **Mood**: the animated background behind the interface: the interactive vortex, its watermark variant, the
->   interactive matrix rain, or off. Browse them with a live preview using `/mood`, jump straight to one with
->   `/mood:vortex`, `/mood:watermark`, `/mood:matrix` or `/mood:off`, cycle through them with `<leader>v`, or set
->   `"background"` in `tui.json`. See [SWISSMARLEY.md](SWISSMARLEY.md).
+>   matrix rain, the ripple pond, the warp starfield, the embers fire, the aurora, or off. Browse them with a live
+>   preview using `/mood`, jump straight to one with `/mood:<name>` (for example `/mood:aurora` or `/mood:off`),
+>   cycle through them with `<leader>v`, or set `"background"` in `tui.json`. See [SWISSMARLEY.md](SWISSMARLEY.md).
 >
 > A skin never changes the mood: the background keeps running under every skin and only takes on the skin's colors.
 

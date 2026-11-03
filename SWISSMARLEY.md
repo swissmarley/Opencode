@@ -2,9 +2,9 @@
 
 This fork restyles the OpenCode terminal UI along two independent axes, so any skin works with any mood:
 
-- **Moods** are animated backgrounds behind the interface: an interactive ASCII vortex, its watermark variant and an
-  interactive matrix rain. They react to your mouse, your keystrokes and the model's streaming output, and they never
-  cover or shift any part of the interface.
+- **Moods** are animated backgrounds behind the interface: an interactive ASCII vortex, its watermark variant, a
+  matrix rain, a rain pond, a starfield, a fire and an aurora. They react to your mouse, your keystrokes and the
+  model's streaming output, and they never cover or shift any part of the interface.
 - **Skins** change the look of the interface itself, in the spirit of 2000s media player skins: a color theme, the
   border rail beside messages and the prompt, the spinner, and a home screen tagline or logo.
 
@@ -34,6 +34,21 @@ A skin never changes the mood: the background keeps running under every skin and
 - **Matrix mode.** Swaps the vortex for falling columns of green glyphs. The rain parts around your mouse pointer and
   seeds new streams in the columns it crosses, each keystroke drops fast bright streams near the cursor, and a
   streaming reply makes the rain heavier and faster. Like the vortex, it only fills empty background.
+- **Ripple mode.** Rain falling on a pond. Each drop sends out a ring of crests that spreads, bounces off the edges of
+  the screen and overlaps other rings into interference patterns, lit from the upper left so the crests glint. Your
+  mouse drags a wake through the water, each keystroke drops a stone at the cursor, and a streaming reply turns the
+  rain into a downpour.
+- **Warp mode.** A starfield flying toward you. Stars fade in far away and grow from `·` to `+` to `*` as they close
+  in, in cool, white and warm colours. Moving the mouse steers the flight, each keystroke gives a burst of speed, and
+  a streaming reply jumps to hyperspace: the stars stretch into long streaks around a glowing tunnel.
+- **Embers mode.** A low fire along the bottom of the screen, its flames licking upward in tongues of different
+  heights, with sparks drifting up and cooling as they go. Your mouse is a breeze that bends the flames away from it,
+  each keystroke throws a spray of sparks from the cursor and makes the fire below flare, and a streaming reply
+  stokes the fire taller and hotter.
+- **Aurora mode.** Northern lights: curtains of light with a bright, waving hem and rays rising from it, green at the
+  bottom, teal above and violet at the top, under a sky of faint twinkling stars. Your mouse pushes the curtains aside
+  like wind on fabric, each keystroke sends a bright surge along them, and a streaming reply makes them glow brighter
+  and move faster.
 - **Light on resources.** It animates at 24 frames per second only while something is happening. After 30 seconds with
   no input and no streaming, it slows to a stop and uses no CPU until you move or type again.
 
@@ -139,10 +154,11 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
 
 - **Move your mouse** across the screen to stir the flow.
 - **Type in the prompt** to send ripples out from the cursor.
-- **Press `Ctrl+X`, then `V`** to cycle through the moods: `vortex` → `watermark` → `matrix` → `off`. A short
-  message confirms the new mood, and OpenCode remembers your choice.
+- **Press `Ctrl+X`, then `V`** to cycle through the moods: `vortex` → `watermark` → `matrix` → `ripple` →
+  `warp` → `embers` → `aurora` → `off`. A short message confirms the new mood, and OpenCode remembers your choice.
 - **Type `/mood`** to browse the moods with a live preview behind the list, then press Enter to keep one.
-- **Type `/mood:matrix`, `/mood:vortex`, `/mood:watermark` or `/mood:off`** in the prompt to jump straight to a mood.
+- **Type `/mood:<name>`**, such as `/mood:aurora`, `/mood:embers` or `/mood:off`, in the prompt to jump straight to a
+  mood.
 - **Type `/skins`** to browse the skins with a live preview, then press Enter to keep one.
 
 ### Step 7 (optional): Build a standalone `opencode` binary
@@ -196,11 +212,11 @@ apply while OpenCode is running.
 }
 ```
 
-| Setting      | Values                                         | What it does                                                                                                          |
-| ------------ | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `background` | `"vortex"`, `"watermark"`, `"matrix"`, `"off"` | Picks the background (the mood). Defaults to `"vortex"`.                                                              |
-| `animations` | `true`, `false`                                | With `false`, the background defaults to `"off"`. If you also set `background` yourself, it shows as a still picture. |
-| `mouse`      | `true`, `false`                                | Mouse capture. The mouse wake needs this on (it is on by default).                                                    |
+| Setting      | Values                                                                                       | What it does                                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `background` | `"vortex"`, `"watermark"`, `"matrix"`, `"ripple"`, `"warp"`, `"embers"`, `"aurora"`, `"off"` | Picks the background (the mood). Defaults to `"vortex"`.                                                              |
+| `animations` | `true`, `false`                                                                              | With `false`, the background defaults to `"off"`. If you also set `background` yourself, it shows as a still picture. |
+| `mouse`      | `true`, `false`                                                                              | Mouse capture. The mouse wake needs this on (it is on by default).                                                    |
 
 > [!NOTE]
 > Your editor may underline `background` as unknown, because the published OpenCode settings schema doesn't include
@@ -335,6 +351,11 @@ Both features live in the terminal UI package:
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `packages/tui/src/ui/vortex.ts`                   | The shader: the noise field, glyph ramp, colour palette and compositor.                                |
 | `packages/tui/src/ui/matrix.ts`                   | The matrix mood: falling drops, glyph flicker, pointer parting and its green palette.                  |
+| `packages/tui/src/ui/ripple.ts`                   | The ripple mood: ring waves with edge reflections, surface lighting and caustics.                      |
+| `packages/tui/src/ui/warp.ts`                     | The warp mood: the 3D starfield, its streaks, steering and hyperspace.                                 |
+| `packages/tui/src/ui/embers.ts`                   | The embers mood: turbulent flames, sparks, the pointer breeze and keystroke flares.                    |
+| `packages/tui/src/ui/aurora.ts`                   | The aurora mood: curtains, rays, height-based colours, stars and keystroke surges.                     |
+| `packages/tui/src/ui/mood.ts`                     | Pacing and glyph ramps shared by the newer moods.                                                      |
 | `packages/tui/src/component/vortex-background.ts` | Hooks the shader into the renderer: the 24 FPS ticker, mouse, keystrokes, streaming and idle throttle. |
 | `packages/tui/src/app.tsx`                        | Mounts the background and registers `app.toggle.background` and the `/mood:<name>` commands.           |
 | `packages/tui/src/config/index.tsx`               | Adds the `background` setting.                                                                         |
@@ -353,7 +374,7 @@ cd packages/tui
 ```
 
 ```bash
-bun test test/vortex.test.tsx test/vortex-app.test.tsx test/matrix.test.ts test/mood-app.test.tsx test/skin.test.ts
+bun test --timeout 30000 test/vortex.test.tsx test/vortex-app.test.tsx test/matrix.test.ts test/moods.test.ts test/mood-app.test.tsx test/skin.test.ts
 ```
 
 ```bash

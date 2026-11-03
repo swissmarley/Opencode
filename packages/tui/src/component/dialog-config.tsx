@@ -60,7 +60,7 @@ export const settings: Setting[] = [
     description: "Animated background behind the interface",
     default: "vortex",
     values: VORTEX_MODES,
-    keywords: ["background", "vortex", "matrix", "watermark", "animation"],
+    keywords: ["background", "vortex", "matrix", "watermark", "ripple", "warp", "embers", "aurora", "animation"],
     format: (value) => Object.entries(MOODS).find(([mood]) => mood === value)?.[1].title ?? String(value),
     open: (dialog) =>
       dialog.replace(() => (

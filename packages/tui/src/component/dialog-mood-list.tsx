@@ -10,6 +10,10 @@ export const MOODS: Record<VortexMode, { title: string; description: string }> =
   vortex: { title: "Vortex", description: "Swirling ASCII flow around the mouse" },
   watermark: { title: "Watermark", description: "The vortex with OPENCODE carved out" },
   matrix: { title: "Matrix", description: "Green rain that parts around the mouse" },
+  ripple: { title: "Ripple", description: "Rain on a pond, with a wake behind the mouse" },
+  warp: { title: "Warp", description: "A starfield you steer with the mouse" },
+  embers: { title: "Embers", description: "A low fire that bends away from the mouse" },
+  aurora: { title: "Aurora", description: "Northern lights the mouse pushes aside" },
   off: { title: "Off", description: "No animated background" },
 }
 

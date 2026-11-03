@@ -34,6 +34,31 @@ test("/mood:matrix and /mood:vortex switch the animated background", async () =>
   await settled(setup, (frame) => vortexCells(frame) > 50 && matrixCells(frame) === 0)
 })
 
+test("/mood:<name> paints each of the newer moods into the empty background", async () => {
+  await using state = await tmpdir()
+  await using setup = await createAppFixture({
+    state: state.path,
+    width: 120,
+    height: 36,
+    config: { animations: false, background: "off" },
+  })
+  await setup.waitFor(() => setup.renderer.currentFocusedEditor instanceof TextareaRenderable)
+  await setup.waitForVisualIdle()
+  const off = setup.captureCharFrame().split("\n")
+  // Cells that were blank with the background off and now hold a glyph.
+  const painted = (frame: string) =>
+    frame
+      .split("\n")
+      .flatMap((line, y) => Array.from(line).filter((char, x) => char !== " " && Array.from(off[y] ?? "")[x] === " "))
+      .length
+
+  for (const name of ["ripple", "warp", "embers", "aurora"] as const) {
+    await mood(setup, name)
+    expect(setup.config().background).toBe(name)
+    await settled(setup, (frame) => painted(frame) > 50 && !frame.includes(`Mood: ${name}`))
+  }
+})
+
 async function mood(setup: Awaited<ReturnType<typeof createAppFixture>>, name: string) {
   setup.mockInput.typeText(`/mood:${name}`)
   await setup.waitForFrame((frame) => frame.includes(`Switch mood to ${name}`))
