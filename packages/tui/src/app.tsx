@@ -117,6 +117,7 @@ import { PanelProvider, usePanel } from "./context/panel"
 import { SessionFrame } from "./component/session-frame"
 import { createTuiClipboard } from "./clipboard"
 import { nextVortexMode, useVortexBackground, vortexMode } from "./component/vortex-background"
+import { VORTEX_MODES } from "./ui/vortex"
 
 const appGlobalBindingCommands = ["session.list", "session.new", "open.menu"] as const
 
@@ -186,6 +187,10 @@ const appBindingCommands = [
   "terminal.title.toggle",
   "app.toggle.animations",
   "app.toggle.background",
+  "mood.vortex",
+  "mood.watermark",
+  "mood.matrix",
+  "mood.off",
   "app.toggle.file_context",
   "app.toggle.diffwrap",
   "app.toggle.paste_summary",
@@ -1289,6 +1294,22 @@ function App() {
           dialog.clear()
         },
       },
+      // One `/mood:<name>` command per mood, so a mood can be picked directly instead of cycled to.
+      ...VORTEX_MODES.map((mood) => ({
+        name: `mood.${mood}`,
+        title: mood === "off" ? "Turn the animated background off" : `Switch mood to ${mood}`,
+        slash: { name: `mood:${mood}` },
+        category: "System",
+        run: () => {
+          void config
+            .update((draft) => {
+              draft.background = mood
+            })
+            .catch(toast.error)
+          toast.show({ variant: "info", message: `Mood: ${mood}`, duration: 1500 })
+          dialog.clear()
+        },
+      })),
       {
         name: "app.toggle.file_context",
         title: (config.data.prompt?.editor ?? true) ? "Disable file context" : "Enable file context",

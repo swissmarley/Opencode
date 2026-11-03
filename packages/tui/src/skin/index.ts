@@ -16,7 +16,7 @@ import plainAscii from "./assets/plain-ascii.json" with { type: "json" }
  * and the home screen logo. Colors still come from the theme system; a skin either names a
  * theme or embeds one, which is registered under the skin ID.
  *
- * The animated background (`background` in config: vortex, watermark, off) is deliberately not part
+ * The animated background (the "mood", `background` in config: vortex, watermark, matrix, off) is deliberately not part
  * of a skin. It stays its own setting so a skin never replaces it; it only takes on the skin's colors.
  */
 export type Skin = {
