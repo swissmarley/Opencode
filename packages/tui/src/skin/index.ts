@@ -15,6 +15,9 @@ import plainAscii from "./assets/plain-ascii.json" with { type: "json" }
  * entire face: a color theme, the rail glyph drawn beside messages and inputs, the spinner,
  * and the home screen logo. Colors still come from the theme system; a skin either names a
  * theme or embeds one, which is registered under the skin ID.
+ *
+ * The animated background (`background` in config: vortex, watermark, off) is deliberately not part
+ * of a skin. It stays its own setting so a skin never replaces it; it only takes on the skin's colors.
  */
 export type Skin = {
   readonly id: string
