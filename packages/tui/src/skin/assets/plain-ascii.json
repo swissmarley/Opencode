@@ -3,5 +3,11 @@
   "description": "Pure 7-bit chrome for any terminal; keeps your current colors",
   "border": "ascii",
   "spinner": "line",
-  "logo": ["+-------------------------+", "|  o p e n c o d e  v2.x  |", "+-------------------------+"]
+  "logo": [
+    "  ___  ___  ___ _  _  ___  ___  ___  ___ ",
+    " / _ \\| _ \\| __| \\| |/ __|/ _ \\|   \\| __|",
+    "| (_) |  _/| _|| .` | (__| (_) | |) | _| ",
+    " \\___/|_|  |___|_|\\_|\\___|\\___/|___/|___|"
+  ],
+  "tagline": "--- 7-bit clean ---"
 }

@@ -52,17 +52,30 @@ test("resolves border and spinner presets and fills defaults", () => {
   expect(bare.theme).toBeUndefined()
 })
 
+test("built-in skins keep the stock wordmark, except the 7-bit one", () => {
+  const skins = allSkins()
+  for (const id of ["lcd-classic", "chrome-y2k", "neon-arcade", "amber-crt", "bubblegum"]) {
+    expect(skins[id]?.logo).toBeUndefined()
+    expect(skins[id]?.tagline).toBeTruthy()
+  }
+  const ascii = skins["plain-ascii"]?.logo ?? []
+  expect(ascii.length).toBeGreaterThan(0)
+  expect(ascii.every((line) => /^[\x20-\x7e]*$/.test(line))).toBeTrue()
+})
+
 test("accepts custom glyphs and spinner frames", () => {
   const skin = parseSkin("custom", {
     name: "Custom",
     theme: "dracula",
     border: { vertical: "▐" },
     spinner: { frames: ["a", "b"], interval: 200 },
+    tagline: "made by me",
   })
   if (skin instanceof Error) throw skin
   expect(skin.theme).toBe("dracula")
   expect(skin.border).toEqual({ vertical: "▐", cap: "▐" })
   expect(skin.spinner).toEqual({ frames: ["a", "b"], interval: 200 })
+  expect(skin.tagline).toBe("made by me")
 })
 
 test.each([

@@ -3,12 +3,7 @@
   "description": "Charcoal player chrome with a glowing green LCD readout",
   "border": "double",
   "spinner": "equalizer",
-  "logo": [
-    "┌─ OPENCODE ─────────────────── - o x ┐",
-    "│ 01:42  ▁▃▅▇▅▃▁▂▄▆█▆▄▂▁              │",
-    "│ |<  <<  >  ||  >>  >|  [ eq ][ pl ] │",
-    "└─────────────────────────────────────┘"
-  ],
+  "tagline": "▁▃▅▇▅▃▁  |<  <<  >  ||  >>  >|  ▁▃▅▇▅▃▁",
   "theme": {
     "defs": {
       "bg": "#15161c",

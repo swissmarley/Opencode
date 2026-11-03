@@ -13,8 +13,9 @@ import plainAscii from "./assets/plain-ascii.json" with { type: "json" }
 /**
  * A skin restyles the TUI chrome as a whole, the way 2000s media players swapped their
  * entire face: a color theme, the rail glyph drawn beside messages and inputs, the spinner,
- * and the home screen logo. Colors still come from the theme system; a skin either names a
- * theme or embeds one, which is registered under the skin ID.
+ * and the home screen logo (its own art, or a tagline under the stock wordmark). Colors still
+ * come from the theme system; a skin either names a theme or embeds one, which is registered
+ * under the skin ID.
  *
  * The animated background (the "mood", `background` in config: vortex, watermark, matrix, off) is deliberately not part
  * of a skin. It stays its own setting so a skin never replaces it; it only takes on the skin's colors.
@@ -28,6 +29,7 @@ export type Skin = {
   readonly border: SkinBorder
   readonly spinner: SkinSpinner
   readonly logo?: readonly string[]
+  readonly tagline?: string
   readonly builtin: boolean
 }
 export type SkinBorder = { readonly vertical: string; readonly cap: string }
@@ -82,6 +84,7 @@ const SkinFile = Schema.Struct({
     ]),
   ),
   logo: Schema.optional(Schema.Array(Schema.String).check(Schema.isMinLength(1))),
+  tagline: Schema.optional(Schema.String),
 })
 const decodeSkinFile = Schema.decodeUnknownExit(SkinFile)
 
@@ -162,6 +165,7 @@ export function parseSkin(id: string, source: unknown): Skin | Error {
     border: border ? { vertical: border.vertical, cap: border.cap ?? border.vertical } : SKIN_BORDERS.heavy,
     spinner: spinner ? { frames: spinner.frames, interval: spinner.interval ?? 80 } : SKIN_SPINNERS.dots,
     logo: file.logo,
+    tagline: file.tagline,
     builtin: false,
   }
 }

@@ -1,7 +1,14 @@
-# Vortex Background for OpenCode
+# swissmarley's OpenCode: Moods and Skins
 
-An interactive ASCII vortex that swirls behind the OpenCode terminal UI. It reacts to your mouse, your keystrokes and
-the model's streaming output, and it never covers or shifts any part of the interface.
+This fork restyles the OpenCode terminal UI along two independent axes, so any skin works with any mood:
+
+- **Moods** are animated backgrounds behind the interface: an interactive ASCII vortex, its watermark variant and an
+  interactive matrix rain. They react to your mouse, your keystrokes and the model's streaming output, and they never
+  cover or shift any part of the interface.
+- **Skins** change the look of the interface itself, in the spirit of 2000s media player skins: a color theme, the
+  border rail beside messages and the prompt, the spinner, and a home screen tagline or logo.
+
+A skin never changes the mood: the background keeps running under every skin and only takes on the skin's colors.
 
 > [!NOTE]
 > This is a fork of [anomalyco/opencode](https://github.com/anomalyco/opencode). It is not built by the OpenCode team
@@ -11,6 +18,8 @@ the model's streaming output, and it never covers or shifts any part of the inte
 ![The OpenCode home screen with the vortex background](.github/assets/vortex-background.png)
 
 ## What you get
+
+### Moods
 
 - **A slowly swirling vortex** of ASCII glyphs (` ·.:;+=xX$&#@`) around a calm, empty centre, coloured from deep
   midnight blue at the edges to soft cyan at the brightest crests. Colours are blended toward your theme's background
@@ -29,6 +38,16 @@ the model's streaming output, and it never covers or shifts any part of the inte
   no input and no streaming, it slows to a stop and uses no CPU until you move or type again.
 
 ![Watermark mode carves OPENCODE out of the flow](.github/assets/vortex-watermark.png)
+
+### Skins
+
+- **Seven built-in skins**: the stock `opencode` look, plus `lcd-classic`, `chrome-y2k`, `neon-arcade`, `amber-crt`,
+  `bubblegum` and the 7-bit `plain-ascii`. Each one has its own color theme, border rail and spinner, and a tagline
+  under the OpenCode logo; `plain-ascii` swaps the logo for a pure ASCII wordmark.
+- **Live preview.** `/skins` repaints the whole interface as you move through the list. Press Enter to keep a skin or
+  Escape to go back to your previous look.
+- **Your own skins.** Drop a JSON file in `~/.config/opencode/skins/` or a project's `.opencode/skins/`. See
+  [the skins docs](packages/web/src/content/docs/skins.mdx) for the format.
 
 ## Before you start
 
@@ -116,13 +135,14 @@ Pick your provider and follow the prompts to paste your API key or sign in. Then
 
 You can now ask OpenCode anything. Watch the vortex speed up while the reply streams in.
 
-### Step 6: Play with the background
+### Step 6: Play with moods and skins
 
 - **Move your mouse** across the screen to stir the flow.
 - **Type in the prompt** to send ripples out from the cursor.
 - **Press `Ctrl+X`, then `V`** to cycle through the moods: `vortex` → `watermark` → `matrix` → `off`. A short
   message confirms the new mood, and OpenCode remembers your choice.
 - **Type `/mood:matrix`, `/mood:vortex`, `/mood:watermark` or `/mood:off`** in the prompt to jump straight to a mood.
+- **Type `/skins`** to browse the skins with a live preview, then press Enter to keep one.
 
 ### Step 7 (optional): Build a standalone `opencode` binary
 
@@ -308,7 +328,7 @@ git merge --abort
 
 ## For developers
 
-The feature lives in the terminal UI package:
+Both features live in the terminal UI package:
 
 | File                                              | Purpose                                                                                                |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -318,6 +338,8 @@ The feature lives in the terminal UI package:
 | `packages/tui/src/app.tsx`                        | Mounts the background and registers `app.toggle.background` and the `/mood:<name>` commands.           |
 | `packages/tui/src/config/index.tsx`               | Adds the `background` setting.                                                                         |
 | `packages/tui/src/config/keybind.ts`              | Adds the default `<leader>v` shortcut.                                                                 |
+| `packages/tui/src/skin/index.ts`                  | Skins: the file format, border and spinner presets, the built-in skins in `skin/assets/`.              |
+| `packages/tui/src/component/dialog-skin-list.tsx` | The `/skins` picker with live preview.                                                                 |
 
 The vortex is drawn as a renderer post-process pass, after the interface has painted each frame. It only writes to
 cells that are still a plain space on the theme's base background, so it can never change layout or overwrite
@@ -330,7 +352,7 @@ cd packages/tui
 ```
 
 ```bash
-bun test test/vortex.test.tsx test/vortex-app.test.tsx
+bun test test/vortex.test.tsx test/vortex-app.test.tsx test/matrix.test.ts test/mood-app.test.tsx test/skin.test.ts
 ```
 
 ```bash

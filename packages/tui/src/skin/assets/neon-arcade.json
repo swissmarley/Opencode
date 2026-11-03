@@ -3,12 +3,7 @@
   "description": "Deep violet cabinet glow with hot pink and cyan neon",
   "border": "block",
   "spinner": "stars",
-  "logo": [
-    "░▒▓█▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█▓▒░",
-    "░▒▓█   O P E N C O D E    █▓▒░",
-    "░▒▓█▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█▓▒░",
-    "    - INSERT COIN TO CODE -"
-  ],
+  "tagline": "- INSERT COIN TO CODE -",
   "theme": {
     "defs": {
       "bg": "#0e0322",

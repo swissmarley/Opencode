@@ -3,7 +3,7 @@
   "description": "Monochrome amber phosphor and a blinking block cursor",
   "border": "heavy",
   "spinner": "cursor",
-  "logo": ["C:\\> OPENCODE.EXE /FAST", "LOADING [##########] 100%", "READY █"],
+  "tagline": "C:\\> OPENCODE.EXE   READY █",
   "theme": {
     "defs": {
       "bg": "#140d02",
