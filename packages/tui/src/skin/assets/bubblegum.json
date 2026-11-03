@@ -3,7 +3,7 @@
   "description": "Pastel pink and aqua, glitter not included",
   "border": "dashed",
   "spinner": "pulse",
-  "logo": ["  .  *  .  O P E N C O D E  .  *  .", "   ~ sweet code, zero cavities ~"],
+  "tagline": "~ sweet code, zero cavities ~",
   "theme": {
     "defs": {
       "bg": "#fff1f8",

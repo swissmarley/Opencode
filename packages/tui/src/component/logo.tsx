@@ -59,39 +59,53 @@ export function Logo() {
     return lines
   }
 
+  // A tagline sits centred under the logo, and drops out rather than wrap on a narrow terminal.
+  const tagline = () => {
+    const text = currentSkin().tagline
+    if (!text || dimensions().height < 12 || dimensions().width < stringWidth(text)) return
+    return text
+  }
+
   return (
-    <box>
-      {dimensions().height < 12 ? null : skinLogo() ? (
-        <For each={skinLogo()}>
-          {(line) => (
-            <text fg={theme.text.base} attributes={TextAttributes.BOLD} selectable={false}>
-              {line}
-            </text>
-          )}
-        </For>
-      ) : dimensions().width < 22 ? (
-        <For each={go.right.slice(1)}>
-          {(line) => <box flexDirection="row">{renderLine(line, theme.text.base, true)}</box>}
-        </For>
-      ) : dimensions().width < 44 ? (
-        <>
-          <For each={logo.left.slice(1)}>
-            {(line) => <box flexDirection="row">{renderLine(line, theme.text.muted, false)}</box>}
+    <box alignItems="center">
+      <box>
+        {dimensions().height < 12 ? null : skinLogo() ? (
+          <For each={skinLogo()}>
+            {(line) => (
+              <text fg={theme.text.base} attributes={TextAttributes.BOLD} selectable={false}>
+                {line}
+              </text>
+            )}
           </For>
-          <For each={logo.right}>
+        ) : dimensions().width < 22 ? (
+          <For each={go.right.slice(1)}>
             {(line) => <box flexDirection="row">{renderLine(line, theme.text.base, true)}</box>}
           </For>
-        </>
-      ) : (
-        <For each={logo.left}>
-          {(line, index) => (
-            <box flexDirection="row" gap={1}>
-              <box flexDirection="row">{renderLine(line, theme.text.muted, false)}</box>
-              <box flexDirection="row">{renderLine(logo.right[index()], theme.text.base, true)}</box>
-            </box>
-          )}
-        </For>
-      )}
+        ) : dimensions().width < 44 ? (
+          <>
+            <For each={logo.left.slice(1)}>
+              {(line) => <box flexDirection="row">{renderLine(line, theme.text.muted, false)}</box>}
+            </For>
+            <For each={logo.right}>
+              {(line) => <box flexDirection="row">{renderLine(line, theme.text.base, true)}</box>}
+            </For>
+          </>
+        ) : (
+          <For each={logo.left}>
+            {(line, index) => (
+              <box flexDirection="row" gap={1}>
+                <box flexDirection="row">{renderLine(line, theme.text.muted, false)}</box>
+                <box flexDirection="row">{renderLine(logo.right[index()], theme.text.base, true)}</box>
+              </box>
+            )}
+          </For>
+        )}
+      </box>
+      {tagline() ? (
+        <text fg={theme.text.muted} selectable={false}>
+          {tagline()}
+        </text>
+      ) : null}
     </box>
   )
 }

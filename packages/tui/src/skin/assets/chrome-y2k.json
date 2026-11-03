@@ -3,11 +3,7 @@
   "description": "Brushed silver panels and electric blue, straight out of 2001",
   "border": "light",
   "spinner": "arcs",
-  "logo": [
-    ".:*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*:.",
-    "      O P E N C O D E    millennium",
-    "'*~*:._.:*~*:._.:*~*:._.:*~*:._.:*~*:.'"
-  ],
+  "tagline": ".:*~*:._  millennium edition  _.:*~*:.",
   "theme": {
     "defs": {
       "bg": "#d5dae3",

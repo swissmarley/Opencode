@@ -8,7 +8,7 @@ A skin changes more than colors. Like the swappable faces of early-2000s media p
 - **Theme**: the color theme it applies. A skin can name any [theme](/docs/themes) or embed its own.
 - **Border**: the rail drawn beside messages, the prompt, and panels.
 - **Spinner**: the activity indicator.
-- **Logo**: the art on the home screen.
+- **Logo**: a tagline under the OpenCode logo on the home screen, or art that replaces the logo.
 
 By default, OpenCode uses the `opencode` skin, which is the stock look.
 
@@ -25,7 +25,7 @@ Run the `/skins` command to browse skins. Moving through the list previews each 
 }
 ```
 
-Picking a skin also applies its theme. You can still switch themes afterwards with `/themes`; the skin keeps its border, spinner, and logo.
+Picking a skin also applies its theme. You can still switch themes afterwards with `/themes`; the skin keeps its border, spinner, and tagline or logo.
 
 A skin never changes the animated background, the "mood". The vortex, the matrix rain, or whichever mood you picked with `/mood:<name>` keeps running under every skin and only takes on the skin's colors.
 
@@ -33,15 +33,15 @@ A skin never changes the animated background, the "mood". The vortex, the matrix
 
 ## Built-in skins
 
-| Name          | Description                                                  |
-| ------------- | ------------------------------------------------------------ |
-| `opencode`    | The stock look                                               |
-| `lcd-classic` | Charcoal player chrome with a glowing green LCD readout      |
-| `chrome-y2k`  | Brushed silver panels and electric blue                      |
-| `neon-arcade` | Deep violet cabinet glow with hot pink and cyan neon         |
-| `amber-crt`   | Monochrome amber phosphor and a blinking block cursor        |
-| `bubblegum`   | Pastel pink and aqua                                         |
-| `plain-ascii` | Pure 7-bit chrome for any terminal; keeps your current theme |
+| Name          | Description                                                       |
+| ------------- | ----------------------------------------------------------------- |
+| `opencode`    | The stock look                                                    |
+| `lcd-classic` | Charcoal player chrome with a glowing green LCD readout           |
+| `chrome-y2k`  | Brushed silver panels and electric blue                           |
+| `neon-arcade` | Deep violet cabinet glow with hot pink and cyan neon              |
+| `amber-crt`   | Monochrome amber phosphor and a blinking block cursor             |
+| `bubblegum`   | Pastel pink and aqua                                              |
+| `plain-ascii` | Pure 7-bit chrome and an ASCII wordmark; keeps your current theme |
 
 Skins that embed a theme also add it to `/themes` under the skin's name.
 
@@ -75,7 +75,7 @@ vim ~/.config/opencode/skins/my-skin.json
   "theme": "tokyonight",
   "border": "double",
   "spinner": "equalizer",
-  "logo": ["+------------------+", "|  my opencode     |", "+------------------+"]
+  "tagline": "~ my opencode ~"
 }
 ```
 
@@ -90,6 +90,7 @@ Only `name` is required.
   - `dashed` `╏`
   - `ascii` `|`
 - `spinner`: a preset, or an object with `frames` (an array of strings) and an optional `interval` in milliseconds (default `80`, minimum `16`). Presets: `dots` (default), `line`, `arcs`, `equalizer`, `blocks`, `pulse`, `stars`, `cursor`.
-- `logo`: lines of plain text for the home screen. It is shown in the theme's text color and falls back to the stock logo when the terminal is narrower than the widest line.
+- `tagline`: one line of text, centered under the logo in the theme's muted text color. It is hidden when the terminal is narrower than the line.
+- `logo`: lines of plain text that replace the OpenCode logo, such as `["+-------------+", "|  my code    |", "+-------------+"]`. It is shown in the theme's text color and falls back to the stock logo when the terminal is narrower than the widest line. Most skins keep the stock logo and set only a `tagline`.
 
 If a skin file is invalid, OpenCode shows an error and leaves it out of the list.
