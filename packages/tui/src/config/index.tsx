@@ -8,6 +8,7 @@ import { createStore, reconcile } from "solid-js/store"
 import { safeWatch } from "../util/watch"
 import path from "path"
 import { TuiKeybind } from "./keybind"
+import { VORTEX_MODES } from "../ui/vortex"
 
 export interface Interface {
   readonly path?: string
@@ -248,6 +249,10 @@ export const Info = Schema.Struct({
     description: "Experimental features that may change or be removed at any time",
   }),
   animations: Schema.optional(Schema.Boolean).annotate({ description: "Enable interface animations" }),
+  background: Schema.optional(Schema.Literals(VORTEX_MODES)).annotate({
+    description:
+      "Animated ASCII background behind the interface (default: vortex, or off when animations are disabled)",
+  }),
   highlights: Schema.optional(Schema.Boolean).annotate({
     description: "Show the release highlights once after OpenCode updates",
   }),

@@ -51,6 +51,7 @@ export const Definitions = {
   "app.console": keybind("none", "Toggle console"),
   "app.scrap": keybind("none", "Open scrap screen"),
   "app.toggle.animations": keybind("none", "Toggle animations"),
+  "app.toggle.background": keybind("<leader>v", "Cycle the animated background"),
   "app.toggle.file_context": keybind("none", "Toggle file context"),
   "app.toggle.diffwrap": keybind("none", "Toggle diff wrapping"),
   "app.toggle.paste_summary": keybind("none", "Toggle paste summary"),

@@ -113,6 +113,7 @@ import { ClientMcp } from "./context/client-mcp"
 import { PanelProvider, usePanel } from "./context/panel"
 import { SessionFrame } from "./component/session-frame"
 import { createTuiClipboard } from "./clipboard"
+import { nextVortexMode, useVortexBackground, vortexMode } from "./component/vortex-background"
 
 const appGlobalBindingCommands = ["session.list", "session.new", "open.menu"] as const
 
@@ -180,6 +181,7 @@ const appBindingCommands = [
   "terminal.suspend",
   "terminal.title.toggle",
   "app.toggle.animations",
+  "app.toggle.background",
   "app.toggle.file_context",
   "app.toggle.diffwrap",
   "app.toggle.paste_summary",
@@ -516,6 +518,7 @@ function App() {
   const plugins = usePlugin()
   const clipboard = useClipboard()
   const terminalEnvironment = useTuiTerminalEnvironment()
+  const background = useVortexBackground()
   let paletteTimer: ReturnType<typeof setTimeout> | undefined
   const afterFrame = () => {
     // The native writer can still be flushing the frame when FRAME fires. Keep OSC probes behind visible app output.
@@ -1244,6 +1247,22 @@ function App() {
         },
       },
       {
+        name: "app.toggle.background",
+        title: "Cycle animated background",
+        category: "System",
+        palette: undefined,
+        run: () => {
+          const next = nextVortexMode(vortexMode(config.data))
+          void config
+            .update((draft) => {
+              draft.background = next
+            })
+            .catch(toast.error)
+          toast.show({ variant: "info", message: `Background: ${next}`, duration: 1500 })
+          dialog.clear()
+        },
+      },
+      {
         name: "app.toggle.file_context",
         title: (config.data.prompt?.editor ?? true) ? "Disable file context" : "Enable file context",
         category: "System",
@@ -1408,6 +1427,7 @@ function App() {
       height={dimensions().height}
       flexDirection="column"
       backgroundColor={theme.background.base}
+      onMouse={background.onMouse}
       onMouseDown={(evt) => {
         if (copyOnSelectEnabled()) return
         if (evt.button !== MouseButton.RIGHT) return
