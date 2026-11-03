@@ -231,6 +231,77 @@ then `V` until it says `off`, or set `"background": "off"`.
 **`git push` fails with a Bun version error.**
 The repo's push hook requires Bun 1.4.4. Repeat step 1 to install that version.
 
+## Keeping up with upstream OpenCode
+
+This fork shares its history with [anomalyco/opencode](https://github.com/anomalyco/opencode), so you can pull in
+upstream's fixes and new features whenever you like and keep your own changes on top.
+
+### Updating
+
+From the repository root, on `main`, with no uncommitted changes:
+
+```bash
+sh script/sync-upstream.sh
+```
+
+The script:
+
+1. Adds upstream as a git remote called `upstream`, the first time you run it.
+2. Fetches upstream's `dev` branch, where OpenCode development happens.
+3. Merges it into your current branch.
+4. Deletes upstream's GitHub Actions workflows again, so they can't start using your Actions minutes. Workflows you
+   add yourself are kept, as long as upstream has no workflow with the same file name.
+
+When it finishes cleanly, reinstall dependencies, check that OpenCode still starts, then push:
+
+```bash
+bun install
+```
+
+```bash
+bun run dev ~/path/to/your/project
+```
+
+```bash
+git push
+```
+
+### When the script reports conflicts
+
+A conflict means upstream and this fork changed the same lines. The script lists the files. For each one:
+
+1. Open the file and find the blocks between `<<<<<<<` and `>>>>>>>`. The top part is your version, the bottom part
+   is upstream's.
+2. Edit the block so it keeps both changes, usually upstream's new code plus your addition, and delete the marker
+   lines.
+3. Mark the file as fixed:
+
+   ```bash
+   git add path/to/file
+   ```
+
+When every file is fixed, finish the update:
+
+```bash
+git commit --no-edit
+```
+
+To cancel the update and go back to how things were:
+
+```bash
+git merge --abort
+```
+
+### Customizing without painful updates
+
+- **Put new code in new files** where you can, as the vortex does in `packages/tui/src/ui/vortex.ts`. Upstream never
+  touches files it doesn't have, so they never conflict.
+- **Keep edits to upstream files small**: a one-line import and a call into your own file conflict far less often
+  than a rewritten function.
+- **Update often.** Merging a week of upstream changes is easy; merging six months at once is not.
+- **Give your own workflows distinct names**, such as `fork-check.yml`. The script only removes workflow files that
+  upstream has, so yours survive every update.
+
 ## For developers
 
 The feature lives in the terminal UI package:
@@ -265,5 +336,5 @@ For the full lint and type check, run `bun run check` from the repository root.
 
 ## License
 
-MIT. This fork's notice is in [`LICENSE`](LICENSE), and the upstream OpenCode notice is preserved in
-[`LICENSE.opencode`](LICENSE.opencode).
+MIT. [`LICENSE`](LICENSE) names both copyright holders, upstream OpenCode and this fork, and upstream's original
+license is also kept in [`LICENSE.opencode`](LICENSE.opencode).
