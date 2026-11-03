@@ -256,6 +256,10 @@ export const Info = Schema.Struct({
     description:
       "Animated background ('mood') behind the interface: vortex, watermark, matrix, ripple, warp, embers, aurora or off (default: vortex, or off when animations are disabled)",
   }),
+  mascot: Schema.optional(Schema.Boolean).annotate({
+    description:
+      "Show Tilde, the animated mascot that follows the agent's activity and answers permission requests (default: on, or off when animations are disabled)",
+  }),
   highlights: Schema.optional(Schema.Boolean).annotate({
     description: "Show the release highlights once after OpenCode updates",
   }),

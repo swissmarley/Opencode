@@ -119,6 +119,7 @@ import { SessionFrame } from "./component/session-frame"
 import { createTuiClipboard } from "./clipboard"
 import { nextVortexMode, useVortexBackground, vortexMode } from "./component/vortex-background"
 import { VORTEX_MODES } from "./ui/vortex"
+import { Mascot, mascotEnabled, mascotPointer } from "./mascot/mascot"
 
 const appGlobalBindingCommands = ["session.list", "session.new", "open.menu"] as const
 
@@ -197,6 +198,7 @@ const appBindingCommands = [
   "mood.embers",
   "mood.aurora",
   "mood.off",
+  "mascot.toggle",
   "app.toggle.file_context",
   "app.toggle.diffwrap",
   "app.toggle.paste_summary",
@@ -1326,6 +1328,22 @@ function App() {
         },
       })),
       {
+        name: "mascot.toggle",
+        title: mascotEnabled(config.data) ? "Hide the mascot" : "Show the mascot",
+        slash: { name: "mascot", aliases: ["tilde"] },
+        category: "System",
+        run: () => {
+          const show = !mascotEnabled(config.data)
+          void config
+            .update((draft) => {
+              draft.mascot = show
+            })
+            .catch(toast.error)
+          toast.show({ variant: "info", message: show ? "Tilde is back" : "Tilde is taking a nap", duration: 1500 })
+          dialog.clear()
+        },
+      },
+      {
         name: "app.toggle.file_context",
         title: (config.data.prompt?.editor ?? true) ? "Disable file context" : "Enable file context",
         category: "System",
@@ -1490,7 +1508,10 @@ function App() {
       height={dimensions().height}
       flexDirection="column"
       backgroundColor={theme.background.base}
-      onMouse={background.onMouse}
+      onMouse={(event) => {
+        background.onMouse(event)
+        mascotPointer(event)
+      }}
       onMouseDown={(evt) => {
         if (copyOnSelectEnabled()) return
         if (evt.button !== MouseButton.RIGHT) return
@@ -1562,6 +1583,7 @@ function App() {
       <Show when={showReconnecting()}>
         <Reconnecting managed={client.restart !== undefined} />
       </Show>
+      <Mascot />
       <MigrationOverlay />
       <Toast />
     </box>
