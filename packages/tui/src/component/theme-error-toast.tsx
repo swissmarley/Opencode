@@ -7,10 +7,10 @@ export function ThemeErrorToast() {
   const toast = useToast()
 
   onCleanup(
-    themes.onError(({ name, error }) =>
+    themes.onError(({ name, error, kind }) =>
       toast.show({
         variant: "error",
-        title: `Failed to load theme: ${name}`,
+        title: `Failed to load ${kind}: ${name}`,
         message: error.message,
       }),
     ),

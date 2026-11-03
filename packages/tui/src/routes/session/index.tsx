@@ -20,7 +20,8 @@ import { createStore } from "solid-js/store"
 import { useData } from "../../context/data"
 import { SplitBorder } from "../../ui/border"
 import { useTuiTerminalEnvironment } from "../../context/runtime"
-import { Spinner, SPINNER_FRAMES } from "../../component/spinner"
+import { Spinner } from "../../component/spinner"
+import { currentSkin } from "../../skin"
 import { PatchDiff } from "../../component/patch-diff"
 import { useTheme, useThemes } from "../../context/theme"
 import {
@@ -2196,7 +2197,7 @@ function CompactionMessage(props: { message: Extract<SessionMessageInfo, { type:
           <Switch>
             <Match when={status() === "running"}>
               <Show when={ctx.config.animations ?? true} fallback={<text fg={color()}>⋯</text>}>
-                <spinner frames={SPINNER_FRAMES} interval={80} color={color()} />
+                <spinner frames={currentSkin().spinner.frames} interval={currentSkin().spinner.interval} color={color()} />
               </Show>
             </Match>
             <Match when={status() === "failed" && !cancelled()}>

@@ -5,6 +5,8 @@ import { useDialog, type DialogContext } from "../ui/dialog"
 import { DialogSelect, DialogSelectChoice } from "../ui/dialog-select"
 import { useToast } from "../ui/toast"
 import { DialogThemeList } from "./dialog-theme-list"
+import { DialogSkinList } from "./dialog-skin-list"
+import { allSkins, DEFAULT_SKIN } from "../skin"
 
 type Setting = {
   title: string
@@ -36,6 +38,17 @@ export const settings: Setting[] = [
       dialog.replace(() => (
         <DialogThemeList onClose={() => dialog.replace(() => <DialogConfig current="theme.name" />)} />
       )),
+  },
+  {
+    title: "Skin",
+    category: "Appearance",
+    path: ["skin"],
+    description: "Bundled look: theme, border rail, spinner and logo",
+    default: DEFAULT_SKIN,
+    keywords: ["look", "style", "retro", "chrome"],
+    format: (value) => allSkins()[String(value)]?.name ?? String(value),
+    open: (dialog) =>
+      dialog.replace(() => <DialogSkinList onClose={() => dialog.replace(() => <DialogConfig current="skin" />)} />),
   },
   {
     title: "Color mode",
@@ -396,10 +409,13 @@ export function DialogConfig(props: { current?: string }) {
     if (setting.path.join(".") === "theme.name") return current ?? themes.selected
     return current ?? setting.default
   }
-  const values = (setting: Setting) =>
-    setting.path.join(".") === "theme.name"
-      ? Object.keys(themes.all()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
-      : setting.values
+  const values = (setting: Setting) => {
+    const id = setting.path.join(".")
+    if (id === "theme.name")
+      return Object.keys(themes.all()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
+    if (id === "skin") return Object.keys(allSkins())
+    return setting.values
+  }
   const display = (setting: Setting) => {
     const current = value(setting)
     if (setting.format) return setting.format(current)

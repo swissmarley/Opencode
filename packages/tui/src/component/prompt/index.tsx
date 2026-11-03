@@ -16,6 +16,7 @@ import { useTheme, useThemes } from "../../context/theme"
 import { tint } from "../../theme/color"
 import { createAnimatable, tween } from "../../ui/animation"
 import { EmptyBorder, SplitBorder } from "../../ui/border"
+import { currentSkin } from "../../skin"
 import { useTuiPaths, useTuiTerminalEnvironment } from "../../context/runtime"
 import { useClipboard } from "../../context/clipboard"
 import { Spinner } from "../spinner"
@@ -1877,7 +1878,7 @@ export function Prompt(props: PromptProps) {
           borderColor={borderHighlight()}
           customBorderChars={{
             ...EmptyBorder,
-            vertical: promptBg().a !== 0 ? "╹" : " ",
+            vertical: promptBg().a !== 0 ? currentSkin().border.cap : " ",
           }}
         >
           <box

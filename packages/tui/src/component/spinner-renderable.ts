@@ -19,7 +19,7 @@ export type ColorGenerator = (
 ) => ColorInput
 
 type SpinnerOptions = RenderableOptions<SpinnerRenderable> & {
-  frames?: string[]
+  frames?: readonly string[]
   interval?: number
   autoplay?: boolean
   color?: ColorInput | ColorGenerator
@@ -31,7 +31,7 @@ const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 // Not live: a live node keeps the renderer running, so renderer.idle(), which mini and the CLI await, never resolves.
 // The renderer's shared animation clock ticks it instead, on frames it shares with other animations, while it is drawn.
 export class SpinnerRenderable extends Renderable {
-  private frameTexts: string[] = []
+  private frameTexts: readonly string[] = []
   private glyphs: { char: string; width: number }[][] = []
   private frameWidth = 0
   private _interval: number
@@ -50,7 +50,7 @@ export class SpinnerRenderable extends Renderable {
     this.frames = options.frames ?? SPINNER_FRAMES
   }
 
-  set frames(value: string[]) {
+  set frames(value: readonly string[]) {
     if (value.length === this.frameTexts.length && value.every((frame, index) => frame === this.frameTexts[index]))
       return
     this.frameTexts = value

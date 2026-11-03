@@ -277,6 +277,7 @@ export default defineConfig({
             "agents",
             "models",
             "themes",
+            "skins",
             "keybinds",
             "commands",
             "formatters",
