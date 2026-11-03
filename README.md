@@ -41,6 +41,19 @@
 
 [![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 
+> [!NOTE]
+> This fork restyles the terminal UI along two independent axes, so any skin works with any mood:
+>
+> - **Skin**: the look of the interface itself, in the spirit of 2000s media player skins. A skin bundles a color
+>   theme, the border rail beside messages and the prompt, the spinner and the home screen logo. Pick one with
+>   `/skins`, or set `"skin"` in `tui.json`. Seven skins are built in, and you can add your own as JSON files in
+>   `skins/`. See [the skins docs](packages/web/src/content/docs/skins.mdx).
+> - **Mood**: the animated background behind the interface. Today that is the interactive vortex, its watermark
+>   variant, or off. Cycle it with `<leader>v`, or set `"background"` in `tui.json`. See [VORTEX.md](VORTEX.md).
+>   More moods, such as an interactive matrix, are planned.
+>
+> A skin never changes the mood: the background keeps running under every skin and only takes on the skin's colors.
+
 ---
 
 ### Installation
