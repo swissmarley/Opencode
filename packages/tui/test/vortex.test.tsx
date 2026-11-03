@@ -201,9 +201,10 @@ test("composited frames keep the rendered layout intact", async () => {
   }
 })
 
-test("the toggle cycles vortex, watermark, then off", () => {
+test("the toggle cycles vortex, watermark, matrix, then off", () => {
   expect(nextVortexMode("vortex")).toBe("watermark")
-  expect(nextVortexMode("watermark")).toBe("off")
+  expect(nextVortexMode("watermark")).toBe("matrix")
+  expect(nextVortexMode("matrix")).toBe("off")
   expect(nextVortexMode("off")).toBe("vortex")
 })
 

@@ -5,7 +5,16 @@ import { useConfig } from "../config"
 import { useData } from "../context/data"
 import { useRoute } from "../context/route"
 import { useThemes } from "../context/theme"
-import { compositeVortex, createVortex, VORTEX_FPS, VORTEX_MODES, vortexPalette, type VortexMode } from "../ui/vortex"
+import { createMatrix, MATRIX_STOPS } from "../ui/matrix"
+import {
+  backgroundPalette,
+  compositeVortex,
+  createVortex,
+  VORTEX_FPS,
+  VORTEX_MODES,
+  vortexPalette,
+  type VortexMode,
+} from "../ui/vortex"
 
 const SHOCK_INTERVAL = 90 // ms between keystroke shockwaves while typing quickly
 
@@ -19,7 +28,8 @@ export function nextVortexMode(mode: VortexMode): VortexMode {
 }
 
 /**
- * Animated ASCII vortex painted behind the whole TUI.
+ * Animated background ("mood") painted behind the whole TUI: the ASCII vortex, its watermark variant, or the
+ * matrix rain. Each mood owns its own simulation; whichever is active receives the pointer, keys and ticks.
  *
  * It runs as a renderer post-process pass, after every renderable has drawn into the frame, and only fills cells that
  * are still empty base background (see `compositeVortex`), so no pane, border, diff or styled text is ever overwritten
@@ -38,7 +48,9 @@ export function useVortexBackground() {
   const data = useData()
   const route = useRoute()
   const vortex = createVortex()
+  const matrix = createMatrix()
   const mode = createMemo(() => vortexMode(config.data))
+  const engine = () => (mode() === "matrix" ? matrix : vortex)
   const animated = createMemo(() => mode() !== "off" && (config.data.animations ?? true))
   const streaming = createMemo(
     () => route.data.type === "session" && data.session.status(route.data.sessionID) === "running",
@@ -47,26 +59,29 @@ export function useVortexBackground() {
   const palette = createMemo(() => {
     const [r, g, b, a] = base().toInts()
     // A transparent base (the system theme) shows the terminal's own background, so assume its mode's extreme.
-    if (a === 0) return vortexPalette(themes.mode() === "light" ? [255, 255, 255] : [0, 0, 0])
-    return vortexPalette([r, g, b])
+    const background: [number, number, number] =
+      a === 0 ? (themes.mode() === "light" ? [255, 255, 255] : [0, 0, 0]) : [r, g, b]
+    return mode() === "matrix" ? backgroundPalette(background, MATRIX_STOPS) : vortexPalette(background)
   })
 
   const paint = (buffer: OptimizedBuffer) => {
     const current = mode()
     if (current === "off") return
-    buffer.withBuffers((cells) =>
-      compositeVortex(cells, vortex.field(cells.width, cells.height, current), palette(), base().buffer),
-    )
+    buffer.withBuffers((cells) => {
+      if (current === "matrix")
+        return compositeVortex(cells, matrix.field(cells.width, cells.height), palette(), base().buffer, matrix.glyphs)
+      compositeVortex(cells, vortex.field(cells.width, cells.height, current), palette(), base().buffer)
+    })
   }
 
   let stopTicker: (() => void) | undefined
   const tick = (delta: number) => {
-    if (vortex.step(delta, streaming())) return
+    if (engine().step(delta, streaming())) return
     stopTicker?.()
     stopTicker = undefined
   }
   const wake = () => {
-    vortex.poke()
+    engine().poke()
     if (stopTicker || !animated()) return
     stopTicker = renderer.onAnimationTick(VORTEX_FPS, tick)
   }
@@ -81,7 +96,9 @@ export function useVortexBackground() {
     })
   })
 
+  // Switching moods restarts the ticker, so a newly chosen mood starts moving even if the last one was at rest.
   createEffect(() => {
+    mode()
     if (!animated()) return
     wake()
     onCleanup(() => {
@@ -110,8 +127,8 @@ export function useVortexBackground() {
     // Keystrokes ripple out from the caret, which sits in the prompt while typing; fall back to the input bar's usual
     // place at the bottom centre when the cursor is hidden.
     const cursor = renderer.getCursorState()
-    if (cursor.visible) vortex.shock(cursor.x, cursor.y)
-    else vortex.shock(renderer.width / 2, renderer.height - 3)
+    if (cursor.visible) engine().shock(cursor.x, cursor.y)
+    else engine().shock(renderer.width / 2, renderer.height - 3)
   }
   renderer.keyInput.on("keypress", onKey)
   onCleanup(() => {
@@ -121,7 +138,7 @@ export function useVortexBackground() {
   return {
     onMouse(event: MouseEvent) {
       if (mode() === "off") return
-      if (event.type === "move" || event.type === "drag" || event.type === "over") vortex.move(event.x, event.y)
+      if (event.type === "move" || event.type === "drag" || event.type === "over") engine().move(event.x, event.y)
       wake()
     },
   }

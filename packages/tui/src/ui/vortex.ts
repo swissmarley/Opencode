@@ -12,7 +12,8 @@ import { logo } from "../logo"
  * This module holds only state and math. `component/vortex-background.ts` wires it to the renderer.
  */
 
-export const VORTEX_MODES = ["vortex", "watermark", "off"] as const
+// Each mode is a "mood": the animated background behind the interface. `matrix` lives in `ui/matrix.ts`.
+export const VORTEX_MODES = ["vortex", "watermark", "matrix", "off"] as const
 export type VortexMode = (typeof VORTEX_MODES)[number]
 export const VORTEX_FPS = 24
 export const VORTEX_IDLE_AFTER = 30_000
@@ -194,20 +195,30 @@ export function createVortex(seed = 0x0c0de) {
  * luminance so the peaks still read as the densest part of the flow.
  */
 export function vortexPalette(background: readonly [number, number, number]) {
+  return backgroundPalette(background, VORTEX_STOPS)
+}
+
+const VORTEX_STOPS = {
+  dark: [
+    [14, 26, 56],
+    [44, 66, 99],
+    [80, 146, 170],
+    [196, 240, 255],
+  ],
+  light: [
+    [201, 214, 232],
+    [138, 164, 196],
+    [63, 127, 153],
+    [18, 56, 79],
+  ],
+} as const
+
+type PaletteStops = Readonly<Record<"dark" | "light", readonly (readonly [number, number, number])[]>>
+
+/** Blends a mood's colour stops toward the theme background, picking the light or dark set by its luminance. */
+export function backgroundPalette(background: readonly [number, number, number], palette: PaletteStops) {
   const light = (0.2126 * background[0] + 0.7152 * background[1] + 0.0722 * background[2]) / 255 > 0.5
-  const stops = light
-    ? [
-        [201, 214, 232],
-        [138, 164, 196],
-        [63, 127, 153],
-        [18, 56, 79],
-      ]
-    : [
-        [14, 26, 56],
-        [44, 66, 99],
-        [80, 146, 170],
-        [196, 240, 255],
-      ]
+  const stops = light ? palette.light : palette.dark
   const lut = new Uint8Array(LEVELS * 3)
   for (let i = 0; i < LEVELS; i++) {
     const level = i / (LEVELS - 1)
@@ -231,8 +242,17 @@ export function vortexPalette(background: readonly [number, number, number]) {
  * indentation inside text stay blank), and wider runs keep a `HALO`-cell margin next to any content. Foreground
  * cells, panels with their own background, selections, links and wide-character continuations are left exactly as
  * drawn, and no background is ever modified.
+ *
+ * `glyphs` supplies the character for each cell instead of the density ramp; the matrix mood uses it, while the
+ * field level still decides whether a cell is drawn and its colour.
  */
-export function compositeVortex(cells: BufferAccess, field: Float32Array, palette: Uint8Array, base: Uint16Array) {
+export function compositeVortex(
+  cells: BufferAccess,
+  field: Float32Array,
+  palette: Uint8Array,
+  base: Uint16Array,
+  glyphs?: Uint32Array,
+) {
   const width = cells.width
   const height = cells.height
   const { char, fg, bg, attributes } = cells
@@ -269,7 +289,7 @@ export function compositeVortex(cells: BufferAccess, field: Float32Array, palett
         if (glyph === 0) continue
         const color = Math.round(level * (LEVELS - 1)) * 3
         const o = i * 4
-        char[i] = RAMP_CODES[glyph]!
+        char[i] = glyphs ? glyphs[i]! : RAMP_CODES[glyph]!
         fg[o] = palette[color]!
         fg[o + 1] = palette[color + 1]!
         fg[o + 2] = palette[color + 2]!

@@ -1,8 +1,14 @@
-import { expect, test } from "bun:test"
+import { beforeEach, expect, test } from "bun:test"
 import { InputRenderable, TextareaRenderable } from "@opentui/core"
 import { tmpdir } from "./fixture/fixture"
 import { createAppFixture } from "./fixture/app"
+import { takeDraft } from "../src/component/prompt/draft-stash"
 import { allSkins } from "../src/skin"
+
+// Other app tests can leave a home draft in the process-wide stash, which these tests type after.
+beforeEach(() => {
+  takeDraft(undefined)
+})
 
 // Ramp glyphs that the home screen never draws itself, as in vortex-app.test.tsx.
 const glyphs = /[·$&#@]/g

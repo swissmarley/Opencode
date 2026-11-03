@@ -254,7 +254,7 @@ export const Info = Schema.Struct({
   animations: Schema.optional(Schema.Boolean).annotate({ description: "Enable interface animations" }),
   background: Schema.optional(Schema.Literals(VORTEX_MODES)).annotate({
     description:
-      "Animated ASCII background behind the interface (default: vortex, or off when animations are disabled)",
+      "Animated background ('mood') behind the interface: vortex, watermark, matrix or off (default: vortex, or off when animations are disabled)",
   }),
   highlights: Schema.optional(Schema.Boolean).annotate({
     description: "Show the release highlights once after OpenCode updates",
