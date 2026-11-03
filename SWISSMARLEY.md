@@ -1,12 +1,15 @@
-# swissmarley's OpenCode: Moods and Skins
+# swissmarley's OpenCode: Moods, Skins and Tilde
 
-This fork restyles the OpenCode terminal UI along two independent axes, so any skin works with any mood:
+This fork restyles the OpenCode terminal UI along two independent axes, so any skin works with any mood, and adds a
+companion that keeps you company while the agent works:
 
 - **Moods** are animated backgrounds behind the interface: an interactive ASCII vortex, its watermark variant, a
   matrix rain, a rain pond, a starfield, a fire and an aurora. They react to your mouse, your keystrokes and the
   model's streaming output, and they never cover or shift any part of the interface.
 - **Skins** change the look of the interface itself, in the spirit of 2000s media player skins: a color theme, the
   border rail beside messages and the prompt, the spinner, and a home screen tagline or logo.
+- **Tilde, the mascot**, is a pixel-art companion floating over the interface. It acts out what the agent is doing in
+  real time, says so in a speech bubble, and lets you approve or deny permission requests from any session.
 
 A skin never changes the mood: the background keeps running under every skin and only takes on the skin's colors.
 
@@ -63,6 +66,36 @@ A skin never changes the mood: the background keeps running under every skin and
   Escape to go back to your previous look.
 - **Your own skins.** Drop a JSON file in `~/.config/opencode/skins/` or a project's `.opencode/skins/`. See
   [the skins docs](packages/web/src/content/docs/skins.mdx) for the format.
+
+### Tilde, the mascot
+
+Tilde is a little CRT terminal with a face on its screen and a curled antenna, drawn as pixel art with half-block
+characters, two pixels to a cell. It floats in the bottom-right corner, above the prompt, and follows the agent's
+session events as they happen.
+
+![Tilde in each of its states](.github/assets/mascot-states.png)
+
+- **It acts out the work.** Tilde ponders under a thought bubble while the model thinks, chats while it writes a reply,
+  reads a book while it reads files, sweeps a magnifier while it searches, and types on a keyboard while it edits
+  files or runs commands. It jumps with confetti when a session finishes, flinches with crossed eyes when something
+  fails, waves with an alert when it needs you, and dozes off after two quiet minutes. The bulb on its antenna and
+  the light on its front take each activity's colour.
+- **Live messages.** A speech bubble beside it says what is happening (`Reading app.tsx`, `Searching for "auth"`,
+  `$ bun test`), streams the last line of the agent's reply, and keeps a progress line with the step, tool calls,
+  edited files, todo progress and elapsed time. When a session finishes it quotes the reply's first sentence. If the
+  work belongs to a session you are not looking at, the bubble names that session, and clicking the bubble opens it.
+- **Approvals.** When any session asks for permission, Tilde waves for attention and the bubble shows the request
+  with **Approve**, **Always** (when the request can be remembered) and **Deny**. Clicking one answers the request
+  through OpenCode, the same way the session's own prompt does. Questions from the agent get an **Answer** button
+  that opens the session. The command palette also has "Approve/Always allow/Deny the permission request shown by
+  the mascot", which you can bind to keys.
+- **Personality.** Its eyes follow your mouse, and glance at the cursor while you type. It blinks, looks around and
+  now and then strolls a few steps along the bottom of the screen. Click it for a reaction, hover it for a hint, and
+  drag it anywhere; it remembers the spot.
+- **Light on resources.** It ticks at 8 frames per second (4 while asleep) and only redraws when its pixels change.
+  With interface animations off it is hidden by default, and shows still frames if you turn it on.
+
+![Tilde asking for permission to run a command](.github/assets/mascot-approval.png)
 
 ## Before you start
 
@@ -160,6 +193,8 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
 - **Type `/mood:<name>`**, such as `/mood:aurora`, `/mood:embers` or `/mood:off`, in the prompt to jump straight to a
   mood.
 - **Type `/skins`** to browse the skins with a live preview, then press Enter to keep one.
+- **Meet Tilde** in the bottom-right corner. Click it, drag it somewhere else, or type `/mascot` to hide it and bring
+  it back.
 
 ### Step 7 (optional): Build a standalone `opencode` binary
 
@@ -216,6 +251,7 @@ apply while OpenCode is running.
 | ------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `background` | `"vortex"`, `"watermark"`, `"matrix"`, `"ripple"`, `"warp"`, `"embers"`, `"aurora"`, `"off"` | Picks the background (the mood). Defaults to `"vortex"`.                                                              |
 | `animations` | `true`, `false`                                                                              | With `false`, the background defaults to `"off"`. If you also set `background` yourself, it shows as a still picture. |
+| `mascot`     | `true`, `false`                                                                              | Shows Tilde, the mascot. On by default, off by default when `animations` is `false`.                                  |
 | `mouse`      | `true`, `false`                                                                              | Mouse capture. The mouse wake needs this on (it is on by default).                                                    |
 
 > [!NOTE]
@@ -256,6 +292,10 @@ Your terminal is probably limited to 256 colours. Enable true colour in its sett
 ```text
 set -as terminal-features ",*:RGB"
 ```
+
+**The mascot covers something I want to see.**
+Drag it somewhere else; it remembers the spot. Type `/mascot` to hide it, or set `"mascot": false` in `cli.json`. It
+hides itself in terminals smaller than 44 by 16 cells.
 
 **Moving the mouse does nothing.**
 Make sure `"mouse": true` is set (it is the default). Inside tmux, also add `set -g mouse on` to `~/.tmux.conf`.
@@ -345,7 +385,7 @@ git merge --abort
 
 ## For developers
 
-Both features live in the terminal UI package:
+All three features live in the terminal UI package:
 
 | File                                              | Purpose                                                                                                |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -362,6 +402,11 @@ Both features live in the terminal UI package:
 | `packages/tui/src/config/keybind.ts`              | Adds the default `<leader>v` shortcut.                                                                 |
 | `packages/tui/src/skin/index.ts`                  | Skins: the file format, border and spinner presets, the built-in skins in `skin/assets/`.              |
 | `packages/tui/src/component/dialog-skin-list.tsx` | The `/skins` picker with live preview.                                                                 |
+| `packages/tui/src/mascot/sprite.ts`               | Tilde's pixel art: the palette, body, faces, limbs and props, composed from a pose into pixels.        |
+| `packages/tui/src/mascot/motion.ts`               | Tilde's animation: the pose for each state and tick, with blinks, glances, hops, pokes and walking.    |
+| `packages/tui/src/mascot/brain.ts`                | Folds session events into what Tilde shows and says, and which request or session comes first.         |
+| `packages/tui/src/mascot/renderable.ts`           | Draws the sprite with half blocks on the shared animation clock, repainting only changed frames.       |
+| `packages/tui/src/mascot/mascot.tsx`              | The overlay: speech bubble, approvals, drag, poke, gaze, strolling and the approval commands.          |
 
 The vortex is drawn as a renderer post-process pass, after the interface has painted each frame. It only writes to
 cells that are still a plain space on the theme's base background, so it can never change layout or overwrite
@@ -374,7 +419,7 @@ cd packages/tui
 ```
 
 ```bash
-bun test --timeout 30000 test/vortex.test.tsx test/vortex-app.test.tsx test/matrix.test.ts test/moods.test.ts test/mood-app.test.tsx test/skin.test.ts
+bun test --timeout 30000 test/vortex.test.tsx test/vortex-app.test.tsx test/matrix.test.ts test/moods.test.ts test/mood-app.test.tsx test/skin.test.ts test/mascot.test.ts test/mascot-app.test.tsx
 ```
 
 ```bash

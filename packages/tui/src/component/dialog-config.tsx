@@ -9,6 +9,7 @@ import { DialogSkinList } from "./dialog-skin-list"
 import { DialogMoodList, MOODS } from "./dialog-mood-list"
 import { VORTEX_MODES } from "../ui/vortex"
 import { vortexMode } from "./vortex-background"
+import { mascotEnabled } from "../mascot/mascot"
 import { allSkins, DEFAULT_SKIN } from "../skin"
 
 type Setting = {
@@ -66,6 +67,16 @@ export const settings: Setting[] = [
       dialog.replace(() => (
         <DialogMoodList onClose={() => dialog.replace(() => <DialogConfig current="background" />)} />
       )),
+  },
+  {
+    title: "Mascot",
+    category: "Appearance",
+    path: ["mascot"],
+    description: "Tilde, the companion that acts out what the agent is doing and asks for approvals",
+    default: true,
+    values: [false, true],
+    labels: ["off", "on"],
+    keywords: ["tilde", "pet", "companion", "buddy", "character"],
   },
   {
     title: "Color mode",
@@ -425,6 +436,7 @@ export function DialogConfig(props: { current?: string }) {
     }, config.data)
     if (setting.path.join(".") === "theme.name") return current ?? themes.selected
     if (setting.path.join(".") === "background") return vortexMode(config.data)
+    if (setting.path.join(".") === "mascot") return mascotEnabled(config.data)
     return current ?? setting.default
   }
   const values = (setting: Setting) => {
