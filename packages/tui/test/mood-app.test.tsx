@@ -1,5 +1,5 @@
 import { beforeEach, expect, test } from "bun:test"
-import { TextareaRenderable } from "@opentui/core"
+import { InputRenderable, TextareaRenderable } from "@opentui/core"
 import { tmpdir } from "./fixture/fixture"
 import { createAppFixture } from "./fixture/app"
 import { takeDraft } from "../src/component/prompt/draft-stash"
@@ -49,4 +49,44 @@ async function settled(setup: Awaited<ReturnType<typeof createAppFixture>>, matc
     await Bun.sleep(25)
   }
   return setup.captureCharFrame()
+}
+
+test("/mood previews moods live, saves on select and restores on cancel", async () => {
+  await using state = await tmpdir()
+  await using setup = await createAppFixture({
+    state: state.path,
+    width: 120,
+    height: 36,
+    config: { animations: false, background: "vortex" },
+  })
+  await setup.waitFor(() => setup.renderer.currentFocusedEditor instanceof TextareaRenderable)
+  await settled(setup, (frame) => vortexCells(frame) > 50)
+
+  // Moving to a mood previews it behind the dialog without saving it; escape brings the saved mood back.
+  await openPicker(setup)
+  setup.mockInput.typeText("matrix")
+  await settled(setup, (frame) => matrixCells(frame) > 50)
+  expect(setup.config().background).toBe("vortex")
+  setup.mockInput.pressEscape()
+  await settled(setup, (frame) => vortexCells(frame) > 50 && matrixCells(frame) === 0 && !pickerOpen(frame))
+  expect(setup.config().background).toBe("vortex")
+
+  await openPicker(setup)
+  setup.mockInput.typeText("matrix")
+  await settled(setup, (frame) => matrixCells(frame) > 50)
+  setup.mockInput.pressEnter()
+  await setup.waitFor(() => setup.config().background === "matrix")
+  await settled(setup, (frame) => matrixCells(frame) > 50 && !pickerOpen(frame))
+})
+
+// The dialog title and a row, which stay put while the dialog animates in and its placeholder is still truncated.
+const pickerOpen = (frame: string) => frame.includes("Moods") && frame.includes("Watermark")
+
+async function openPicker(setup: Awaited<ReturnType<typeof createAppFixture>>) {
+  setup.mockInput.typeText("/mood")
+  await setup.waitForFrame((frame) => frame.includes("Switch mood "))
+  setup.mockInput.pressEnter()
+  await setup.waitFor(
+    () => pickerOpen(setup.captureCharFrame()) && setup.renderer.currentFocusedRenderable instanceof InputRenderable,
+  )
 }

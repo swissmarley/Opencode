@@ -52,6 +52,7 @@ export const Definitions = {
   "app.scrap": keybind("none", "Open scrap screen"),
   "app.toggle.animations": keybind("none", "Toggle animations"),
   "app.toggle.background": keybind("<leader>v", "Cycle the animated background"),
+  "mood.switch": keybind("none", "List available moods"),
   "mood.vortex": keybind("none", "Switch the animated background to the vortex"),
   "mood.watermark": keybind("none", "Switch the animated background to the vortex watermark"),
   "mood.matrix": keybind("none", "Switch the animated background to the matrix rain"),

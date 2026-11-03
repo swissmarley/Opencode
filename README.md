@@ -54,8 +54,9 @@
 >   `/skins`, or set `"skin"` in `tui.json`. Seven skins are built in, and you can add your own as JSON files in
 >   `skins/`. See [the skins docs](packages/web/src/content/docs/skins.mdx).
 > - **Mood**: the animated background behind the interface: the interactive vortex, its watermark variant, the
->   interactive matrix rain, or off. Pick one with `/mood:vortex`, `/mood:watermark`, `/mood:matrix` or `/mood:off`,
->   cycle through them with `<leader>v`, or set `"background"` in `tui.json`. See [SWISSMARLEY.md](SWISSMARLEY.md).
+>   interactive matrix rain, or off. Browse them with a live preview using `/mood`, jump straight to one with
+>   `/mood:vortex`, `/mood:watermark`, `/mood:matrix` or `/mood:off`, cycle through them with `<leader>v`, or set
+>   `"background"` in `tui.json`. See [SWISSMARLEY.md](SWISSMARLEY.md).
 >
 > A skin never changes the mood: the background keeps running under every skin and only takes on the skin's colors.
 

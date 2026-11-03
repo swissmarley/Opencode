@@ -1,6 +1,6 @@
 import type { KeyEvent, MouseEvent, OptimizedBuffer } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"
-import { createEffect, createMemo, onCleanup } from "solid-js"
+import { createEffect, createMemo, createSignal, onCleanup } from "solid-js"
 import { useConfig } from "../config"
 import { useData } from "../context/data"
 import { useRoute } from "../context/route"
@@ -21,6 +21,14 @@ const SHOCK_INTERVAL = 90 // ms between keystroke shockwaves while typing quickl
 /** The configured background, defaulting to the vortex unless interface animations are turned off. */
 export function vortexMode(config: { background?: VortexMode; animations?: boolean }): VortexMode {
   return config.background ?? (config.animations === false ? "off" : "vortex")
+}
+
+// A mood shown without being saved, while the `/mood` picker previews the highlighted entry.
+const [previewMood, setPreviewMood] = createSignal<VortexMode>()
+
+/** Shows `mood` in place of the configured one until cleared with `undefined`; nothing is persisted. */
+export function setMoodPreview(mood: VortexMode | undefined) {
+  setPreviewMood(mood)
 }
 
 export function nextVortexMode(mode: VortexMode): VortexMode {
@@ -49,7 +57,7 @@ export function useVortexBackground() {
   const route = useRoute()
   const vortex = createVortex()
   const matrix = createMatrix()
-  const mode = createMemo(() => vortexMode(config.data))
+  const mode = createMemo(() => previewMood() ?? vortexMode(config.data))
   const engine = () => (mode() === "matrix" ? matrix : vortex)
   const animated = createMemo(() => mode() !== "off" && (config.data.animations ?? true))
   const streaming = createMemo(
