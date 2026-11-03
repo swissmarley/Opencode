@@ -39,6 +39,11 @@
   <a href="README.vi.md">Tiếng Việt</a>
 </p>
 
+> [!NOTE]
+> This is an unofficial fork of [OpenCode](https://github.com/anomalyco/opencode) that adds an interactive ASCII
+> vortex background. It is not built by the OpenCode team and is not affiliated with them in any way. To set it up,
+> see [VORTEX.md](VORTEX.md).
+
 [![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 
 ---
