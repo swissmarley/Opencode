@@ -196,26 +196,37 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
 - **Meet Tilde** in the bottom-right corner. Click it, drag it somewhere else, or type `/mascot` to hide it and bring
   it back.
 
-### Step 7 (optional): Build a standalone `opencode` binary
+### Step 7 (optional): Install it as your `opencode` command
 
-If you'd rather run a single program than `bun run dev`, build one for your machine:
+If you'd rather type `opencode` than `bun run dev`, build a standalone binary for your machine and install it.
+
+**Build it:**
 
 ```bash
-bun run --cwd packages/cli build --single
+OPENCODE_CHANNEL=local bun run --cwd packages/cli build --single
 ```
 
 If that fails while building the web UI (for example because `ghostty-web` couldn't be downloaded in step 3), skip the
 web UI:
 
 ```bash
-bun run --cwd packages/cli build --single --skip-web-ui
+OPENCODE_CHANNEL=local bun run --cwd packages/cli build --single --skip-web-ui
 ```
 
 The binary is written to `packages/cli/dist/cli-<os>-<arch>/bin/opencode`, for example
-`packages/cli/dist/cli-darwin-arm64/bin/opencode` on an Apple Silicon Mac. Copy it somewhere on your `PATH`:
+`packages/cli/dist/cli-darwin-arm64/bin/opencode` on an Apple Silicon Mac.
+
+**Install it** with the installer that ships in this repo:
 
 ```bash
-mkdir -p ~/.local/bin && cp packages/cli/dist/cli-*/bin/opencode ~/.local/bin/opencode
+./install --binary packages/cli/dist/cli-*/bin/opencode
+```
+
+The installer copies the binary to `~/.opencode/bin/opencode` and adds that folder to your `PATH` in your shell's
+config file (`.zshrc`, `.bashrc` or the fish config). Open a new terminal and check that your shell finds it there:
+
+```bash
+which opencode
 ```
 
 Then start it from any project folder:
@@ -224,9 +235,28 @@ Then start it from any project folder:
 opencode
 ```
 
+**To update it** after you pull new changes, run the build and install commands again. This build never updates
+itself.
+
+> [!IMPORTANT]
+> Keep `OPENCODE_CHANNEL=local` in the build command. Without it, the build takes its channel from your git branch
+> name and checks for official OpenCode updates. Because the binary lives where the official installer puts its own,
+> accepting one of those updates, or running `opencode upgrade`, would replace this fork with upstream OpenCode. A
+> `local` build skips update checks entirely.
+
+> [!NOTE]
+> A `local` build keeps its sessions in its own database (`opencode-local.db`) and runs its own background server, so
+> sessions from the official OpenCode don't show up at first. To share the official database and keep your existing
+> history, add this to your shell config:
+>
+> ```bash
+> export OPENCODE_DISABLE_CHANNEL_DB=1
+> ```
+
 > [!WARNING]
-> If the official OpenCode is also installed, whichever `opencode` comes first on your `PATH` wins. Rename the copy
-> (for example to `opencode-vortex`) if you want to keep both.
+> If you installed the official OpenCode with the same installer, this replaces it. If you installed it another way
+> (npm, Homebrew, WinGet), whichever `opencode` comes first on your `PATH` wins. Run `which opencode` to see which one
+> that is.
 
 ## Settings
 
