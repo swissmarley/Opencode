@@ -48,5 +48,27 @@ export const VoiceHandler = HttpApiBuilder.group(Api, "server.voice", (handlers)
           locationErrors,
         ),
       )
+      .handle(
+        "voice.transcribe",
+        Effect.fn("server.voice.transcribe")(
+          function* (request) {
+            yield* awaitPlugins
+            const voice = yield* Voice.Service
+            return {
+              data: yield* voice
+                .transcribe(request.payload)
+                .pipe(
+                  Effect.mapError((error) =>
+                    error._tag === "Voice.InvalidRequestError"
+                      ? new InvalidRequestError({ message: error.message })
+                      : new ServiceUnavailableError({ message: error.message, service: error.service }),
+                  ),
+                ),
+            }
+          },
+          Effect.provide(services),
+          locationErrors,
+        ),
+      )
   }),
 )

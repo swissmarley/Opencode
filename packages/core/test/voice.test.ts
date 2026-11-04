@@ -1,8 +1,15 @@
 import { expect } from "bun:test"
 import { RequestExecutor } from "@opencode/ai/route"
+import { Config } from "@opencode/core/config"
 import { Credential } from "@opencode/core/credential"
 import { Integration } from "@opencode/core/integration"
 import { Voice } from "@opencode/core/voice"
+import { Document, Info } from "@opencode/schema/config"
+import { ConfigExperimental } from "@opencode/schema/config/experimental"
+import type { ConfigTranscription } from "@opencode/schema/config/transcription"
+import { LayerNode } from "@opencode/util/effect/layer-node"
+import { FSUtil } from "@opencode/util/fs-util"
+import { AppProcess } from "@opencode/util/process"
 import { Effect, Layer } from "effect"
 import { HttpClient, type HttpClientRequest, HttpClientResponse } from "effect/http"
 import { TestClock } from "effect/testing"
@@ -66,6 +73,45 @@ const mockIntegration = (
     command: { connect: unused, status: unused, cancel: unused },
   })
 
+const voiceLayer = (
+  integration: Layer.Layer<Integration.Service>,
+  executor: Layer.Layer<RequestExecutor.Service>,
+  transcription?: ConfigTranscription.Info,
+) =>
+  Voice.layer.pipe(
+    Layer.provide([
+      integration,
+      executor,
+      Config.testLayer(
+        transcription
+          ? [
+              new Document({
+                type: "document",
+                info: new Info({ experimental: new ConfigExperimental.Info({ transcription }) }),
+              }),
+            ]
+          : [],
+      ),
+      LayerNode.compile(LayerNode.group([FSUtil.node, AppProcess.node])),
+    ]),
+  )
+
+// Answers every upstream request with `respond`, recording what was sent.
+const recordingExecutor = (requests: HttpClientRequest.HttpClientRequest[], respond: () => Response) =>
+  RequestExecutor.layer.pipe(
+    Layer.provide(
+      Layer.succeed(
+        HttpClient.HttpClient,
+        HttpClient.make((req: HttpClientRequest.HttpClientRequest) =>
+          Effect.sync(() => {
+            requests.push(req)
+            return HttpClientResponse.fromWeb(req, respond())
+          }),
+        ),
+      ),
+    ),
+  )
+
 // Starts a session with each integration's connections, recording the requests it sends upstream.
 const start = (
   model: string,
@@ -82,31 +128,14 @@ const start = (
     }),
   ).pipe(
     Effect.provide(
-      Voice.layer.pipe(
-        Layer.provide(
-          Layer.merge(
-            mockIntegration((id) => connections[id] ?? [], resolveCredential),
-            RequestExecutor.layer.pipe(
-              Layer.provide(
-                Layer.succeed(
-                  HttpClient.HttpClient,
-                  HttpClient.make((req: HttpClientRequest.HttpClientRequest) =>
-                    Effect.sync(() => {
-                      requests.push(req)
-                      return HttpClientResponse.fromWeb(
-                        req,
-                        model.startsWith("gemini-")
-                          ? Response.json({ name: "auth_tokens/ek_gemini" })
-                          : model.startsWith("grok-")
-                            ? Response.json({ value: "ek_xai", expires_at: 1760000999 })
-                            : Response.json({ transport: { sdp: "v=0\r\no=answer\r\n" } }),
-                      )
-                    }),
-                  ),
-                ),
-              ),
-            ),
-          ),
+      voiceLayer(
+        mockIntegration((id) => connections[id] ?? [], resolveCredential),
+        recordingExecutor(requests, () =>
+          model.startsWith("gemini-")
+            ? Response.json({ name: "auth_tokens/ek_gemini" })
+            : model.startsWith("grok-")
+              ? Response.json({ value: "ek_xai", expires_at: 1760000999 })
+              : Response.json({ transport: { sdp: "v=0\r\no=answer\r\n" } }),
         ),
       ),
     ),
@@ -185,13 +214,9 @@ it.effect("lists voice models with availability and default without resolving cr
     const list = (connections: Partial<Record<string, Integration.Info["connections"]>>) =>
       Effect.flatMap(Voice.Service, (voice) => voice.models()).pipe(
         Effect.provide(
-          Voice.layer.pipe(
-            Layer.provide(
-              Layer.merge(
-                mockIntegration((id) => connections[id] ?? []),
-                Layer.mock(RequestExecutor.Service, {}),
-              ),
-            ),
+          voiceLayer(
+            mockIntegration((id) => connections[id] ?? []),
+            Layer.mock(RequestExecutor.Service, {}),
           ),
         ),
       )
@@ -234,5 +259,82 @@ it.effect("lists voice models with availability and default without resolving cr
       ],
     })
     expect("default" in none).toBe(false)
+  }),
+)
+
+// A short WAV-shaped payload; transcription routes forward the bytes without decoding them.
+const audio = Buffer.from("RIFF....WAVEfmt ").toString("base64")
+
+const transcribe = (
+  connections: Partial<Record<string, Integration.Info["connections"]>>,
+  transcription: ConfigTranscription.Info | undefined,
+  requests: HttpClientRequest.HttpClientRequest[] = [],
+) =>
+  Effect.flatMap(Voice.Service, (voice) => voice.transcribe({ audio, mime: "audio/wav" })).pipe(
+    Effect.provide(
+      voiceLayer(
+        mockIntegration((id) => connections[id] ?? [], resolveCredential),
+        recordingExecutor(requests, () => Response.json({ text: " Fix the login\n  bug. " })),
+        transcription,
+      ),
+    ),
+  )
+
+it.effect("transcribes with OpenAI Whisper using the server's OpenAI key", () =>
+  Effect.gen(function* () {
+    const requests: HttpClientRequest.HttpClientRequest[] = []
+    const result = yield* transcribe(
+      { openai: [credential("chatgpt", "oauth"), credential("stored", "key")] },
+      undefined,
+      requests,
+    )
+    expect(result).toEqual({ text: "Fix the login bug." })
+    expect(requests.map((req) => [req.url, req.headers.authorization])).toEqual([
+      ["https://api.openai.com/v1/audio/transcriptions", "Bearer sk-stored"],
+    ])
+
+    const signInOnly = yield* transcribe({ openai: [credential("chatgpt", "oauth")] }, undefined).pipe(Effect.flip)
+    expect(signInOnly).toMatchObject({ _tag: "Voice.UnavailableError", service: "openai" })
+    expect(signInOnly.message).toContain("OPENAI_API_KEY")
+  }),
+)
+
+it.effect("sends an OpenAI-compatible endpoint only the key configured for it", () =>
+  Effect.gen(function* () {
+    const requests: HttpClientRequest.HttpClientRequest[] = []
+    const openai = { openai: [credential("active", "key")] }
+    yield* transcribe(openai, { base_url: "http://127.0.0.1:8080/v1", model: "large-v3" }, requests)
+    yield* transcribe(openai, { base_url: "https://api.groq.com/openai/v1", api_key: "gsk-groq" }, requests)
+    expect(requests.map((req): (string | undefined)[] => [req.url, req.headers.authorization])).toEqual([
+      ["http://127.0.0.1:8080/v1/audio/transcriptions", undefined],
+      ["https://api.groq.com/openai/v1/audio/transcriptions", "Bearer gsk-groq"],
+    ])
+  }),
+)
+
+it.live("transcribes locally with the configured command and its placeholders", () =>
+  Effect.gen(function* () {
+    // Prints what the command received, the way whisper.cpp prints one line per segment.
+    const script = `const [file, model, language] = process.argv.slice(1); console.log(" [BLANK_AUDIO]"); console.log(require("fs").readFileSync(file, "utf8").slice(0, 4), model, language)`
+    const result = yield* transcribe(
+      {},
+      {
+        provider: "local",
+        model: "base.en",
+        language: "de",
+        command: [process.execPath, "-e", script, "{file}", "{model}", "{language}"],
+      },
+    )
+    expect(result).toEqual({ text: "RIFF base.en de" })
+
+    const missing = yield* transcribe({}, { provider: "local" }).pipe(Effect.flip)
+    expect(missing._tag).toBe("Voice.InvalidRequestError")
+    expect(missing.message).toContain("experimental.transcription.model")
+
+    const failing = yield* transcribe(
+      {},
+      { provider: "local", command: [process.execPath, "-e", "process.exit(3)"] },
+    ).pipe(Effect.flip)
+    expect(failing).toMatchObject({ _tag: "Voice.UnavailableError", service: "local" })
   }),
 )

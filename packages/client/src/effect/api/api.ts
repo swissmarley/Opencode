@@ -1542,9 +1542,16 @@ export type ExperimentalVoiceSessionOperation<E = never> = (
   input: ExperimentalVoiceSessionInput,
 ) => Effect.Effect<ExperimentalVoiceSessionOutput, E>
 
+export type ExperimentalVoiceTranscribeInput = { readonly audio: string; readonly mime: string }
+export type ExperimentalVoiceTranscribeOutput = { readonly text: string }
+export type ExperimentalVoiceTranscribeOperation<E = never> = (
+  input: ExperimentalVoiceTranscribeInput,
+) => Effect.Effect<ExperimentalVoiceTranscribeOutput, E>
+
 export interface ExperimentalVoiceApi<E = never> {
   readonly models: ExperimentalVoiceModelsOperation<E>
   readonly session: ExperimentalVoiceSessionOperation<E>
+  readonly transcribe: ExperimentalVoiceTranscribeOperation<E>
 }
 
 export type ProviderListInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
@@ -2905,6 +2912,15 @@ export type VoiceSessionOutput = ExperimentalVoiceSessionOutput
 /** @deprecated Use `ExperimentalVoiceSessionOperation`. Removed in the next minor. */
 export type VoiceSessionOperation<E = never> = ExperimentalVoiceSessionOperation<E>
 
+/** @deprecated Use `ExperimentalVoiceTranscribeInput`. Removed in the next minor. */
+export type VoiceTranscribeInput = ExperimentalVoiceTranscribeInput
+
+/** @deprecated Use `ExperimentalVoiceTranscribeOutput`. Removed in the next minor. */
+export type VoiceTranscribeOutput = ExperimentalVoiceTranscribeOutput
+
+/** @deprecated Use `ExperimentalVoiceTranscribeOperation`. Removed in the next minor. */
+export type VoiceTranscribeOperation<E = never> = ExperimentalVoiceTranscribeOperation<E>
+
 /** @deprecated Use `ExperimentalIntegrationWellknownAddInput`. Removed in the next minor. */
 export type IntegrationWellknownAddInput = ExperimentalIntegrationWellknownAddInput
 
@@ -3072,6 +3088,9 @@ export interface AppApi<E = never> {
 
     /** @deprecated Use `client.experimental.voice.session`. Removed in the next minor. */
     readonly session: ExperimentalVoiceSessionOperation<E>
+
+    /** @deprecated Use `client.experimental.voice.transcribe`. Removed in the next minor. */
+    readonly transcribe: ExperimentalVoiceTranscribeOperation<E>
   }
 
   /** @deprecated Use `client.experimental.migration`. Removed in the next minor. */

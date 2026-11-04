@@ -39,12 +39,19 @@ const voice = makeLocationNode({
               },
         )
       },
+      transcribe: (input) => {
+        const audio = Buffer.from(input.audio, "base64").toString("utf8")
+        if (audio === "invalid") return Effect.fail(new Voice.InvalidRequestError({ message: "Unsupported audio" }))
+        if (audio === "unavailable")
+          return Effect.fail(new Voice.UnavailableError({ message: "OpenAI API key is required", service: "openai" }))
+        return Effect.succeed({ text: `heard ${audio} as ${input.mime}` })
+      },
     }),
   ),
   deps: [],
 })
 
-it.live("routes experimental voice models and session endpoints", () =>
+it.live("routes experimental voice models, session and transcribe endpoints", () =>
   Effect.gen(function* () {
     const tmp = yield* Effect.acquireDisposable(Effect.promise(() => tmpdir("opencode-voice-endpoint-")))
     const global = path.join(tmp.path, "global")
@@ -110,5 +117,22 @@ it.live("routes experimental voice models and session endpoints", () =>
 
     expect((yield* post({ model: "invalid", transport: { type: "websocket" } })).status).toBe(400)
     expect((yield* post({ model: "unavailable", transport: { type: "websocket" } })).status).toBe(503)
+
+    const transcribe = (audio: string, mime = "audio/wav") =>
+      Effect.promise(() =>
+        handler(
+          new Request("http://opencode.local/api/experimental/voice/transcribe", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ audio: Buffer.from(audio).toString("base64"), mime }),
+          }),
+        ),
+      )
+    const heard = yield* transcribe("hello")
+    expect(heard.status).toBe(200)
+    expect(yield* Effect.promise(() => heard.json())).toEqual({ data: { text: "heard hello as audio/wav" } })
+    expect((yield* transcribe("hello", "text/plain")).status).toBe(400)
+    expect((yield* transcribe("invalid")).status).toBe(400)
+    expect((yield* transcribe("unavailable")).status).toBe(503)
   }),
 )

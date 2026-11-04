@@ -19,13 +19,15 @@ export function PromptMetadataRow(props: {
   agentAlpha: number
   modelAlpha: number
   variantAlpha: number
+  /** Cells taken by controls sharing the row, such as the microphone button. */
+  reserved?: number
 }) {
   const theme = useTheme()
   const dimensions = useTerminalDimensions()
   const layout = createMemo(() => {
     if (props.mode === "shell") return { agent: props.agent ?? "Shell", model: "" }
     return promptMetadataLayout({
-      width: Math.max(0, dimensions().width - (dimensions().width < 44 ? 9 : 13)),
+      width: Math.max(0, dimensions().width - (dimensions().width < 44 ? 9 : 13) - (props.reserved ?? 0)),
       terminalWidth: dimensions().width,
       agent: props.agent ?? "",
       auto: props.auto,

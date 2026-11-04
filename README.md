@@ -42,8 +42,9 @@
 > [!NOTE]
 > This is an unofficial fork of [OpenCode](https://github.com/anomalyco/opencode) that adds skins, animated
 > backgrounds ("moods": an interactive ASCII vortex, matrix rain, a rain pond, a starfield, a fire and an aurora) and
-> Tilde, a pixel-art mascot that follows the agent and answers permission requests, to the terminal UI. It is not
-> built by the OpenCode team and is not affiliated with them in any way. To set it up, see [SWISSMARLEY.md](SWISSMARLEY.md).
+> Tilde, a pixel-art mascot that follows the agent and answers permission requests, plus voice input for dictating
+> prompts with OpenAI Whisper or a local Whisper model, to the terminal UI. It is not built by the OpenCode team and
+> is not affiliated with them in any way. To set it up, see [SWISSMARLEY.md](SWISSMARLEY.md).
 
 [![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
 

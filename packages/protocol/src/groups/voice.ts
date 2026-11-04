@@ -86,6 +86,29 @@ export const VoiceGroup = HttpApiGroup.make("server.voice")
       }),
     ),
   )
+  .add(
+    HttpApiEndpoint.post("voice.transcribe", "/api/experimental/voice/transcribe", {
+      payload: Schema.Struct({
+        audio: Schema.String.annotate({ description: "The recording, base64-encoded" }),
+        mime: Schema.String.check(Schema.isPattern(/^audio\/[\w.+-]+/u)).annotate({
+          description: "The recording's media type, such as audio/wav",
+        }),
+      }),
+      success: Schema.Struct({
+        data: Schema.Struct({
+          text: Schema.String,
+        }),
+      }).annotate({ identifier: "VoiceTranscribeResponse" }),
+      error: [InvalidRequestError, ServiceUnavailableError, LocationNotFoundError],
+    }).annotateMerge(
+      OpenApi.annotations({
+        identifier: "experimental.voice.transcribe",
+        summary: "Transcribe speech",
+        description:
+          "Experimental: may change without compatibility guarantees. Transcribe a recording to text with the server's experimental.transcription config: OpenAI Whisper with the server's OpenAI key by default, an OpenAI-compatible endpoint, or a local Whisper command.",
+      }),
+    ),
+  )
   .annotateMerge(
     OpenApi.annotations({
       title: "voice",

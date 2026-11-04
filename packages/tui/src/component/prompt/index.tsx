@@ -72,6 +72,7 @@ import { useWorkingDirectoryActions } from "../../ui/working-directory-actions"
 import { truncateFilePath } from "../../ui/file-path"
 import { PromptMetadataRow } from "./metadata"
 import { limitLabel, useUsageLimits } from "../usage"
+import { useVoiceInput, VoiceButton, voiceButtonWidth } from "../../voice/voice"
 
 export type PromptProps = {
   sessionID?: string
@@ -417,6 +418,10 @@ export function Prompt(props: PromptProps) {
     ),
   )
 
+  const voice = useVoiceInput({ insert: insertTranscript, enabled: () => !disabled() })
+  // With the button hidden, a recording started from the shortcut still shows its timer.
+  const voiceVisible = () => (config.voice?.button ?? true) || voice.state() !== "idle"
+
   const promptCommands = createMemo(() =>
     [
       {
@@ -490,6 +495,18 @@ export function Prompt(props: PromptProps) {
               await pasteInputText(content.data, changed)
             }
           })
+        },
+      },
+      {
+        title: voice.state() === "idle" ? "Start voice input" : "Stop voice input",
+        name: "prompt.voice",
+        category: "Prompt",
+        slash: { name: "voice", aliases: ["dictate", "mic"] },
+        run: (_input: string | undefined, event?: KeyEvent) => {
+          event?.preventDefault()
+          event?.stopPropagation()
+          voice.keyPress(event)
+          dialog.clear()
         },
       },
       {
@@ -665,6 +682,7 @@ export function Prompt(props: PromptProps) {
       "prompt.stash.pop",
       "prompt.stash.list",
       "prompt.skills",
+      "prompt.voice",
       "session.interrupt",
       "session.background",
       "session.move",
@@ -1432,6 +1450,20 @@ export function Prompt(props: PromptProps) {
     )
   }
 
+  // Dictated text lands at the cursor like typed text, spaced from the words around it.
+  function insertTranscript(text: string) {
+    if (disposed || input.isDestroyed) return
+    const offset = input.cursorOffset
+    const before = offset > 0 ? input.getTextRange(offset - 1, offset) : ""
+    const after = input.getTextRange(offset, offset + 1)
+    input.insertText(`${/\S/.test(before) ? " " : ""}${text}${/\S/.test(after) ? " " : ""}`)
+    setTimeout(() => {
+      if (!input || input.isDestroyed) return
+      input.invalidateIntrinsicSize()
+      renderer.requestRender()
+    }, 0)
+  }
+
   function expandPastedText(extmarkId: number) {
     const extmark = input.extmarks.get(extmarkId)
     const ref = store.extmarkToPart.get(extmarkId)
@@ -1868,7 +1900,11 @@ export function Prompt(props: PromptProps) {
                 agentAlpha={agentMetaAlpha()}
                 modelAlpha={modelMetaAlpha()}
                 variantAlpha={variantMetaAlpha()}
+                reserved={voiceVisible() ? voiceButtonWidth(voice.state()) + 1 : 0}
               />
+              <Show when={voiceVisible()}>
+                <VoiceButton voice={voice} muted={!!muted()} />
+              </Show>
             </box>
           </box>
         </box>

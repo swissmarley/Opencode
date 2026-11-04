@@ -118,6 +118,8 @@ import type {
   ExperimentalVoiceModelsOutput,
   ExperimentalVoiceSessionInput,
   ExperimentalVoiceSessionOutput,
+  ExperimentalVoiceTranscribeInput,
+  ExperimentalVoiceTranscribeOutput,
   ProviderListInput,
   ProviderListOutput,
   ProviderGetInput,
@@ -1234,6 +1236,18 @@ export function make(options: ClientOptions) {
               method: "POST",
               path: `/api/experimental/voice/session`,
               body: { model: input["model"], session: input["session"], transport: input["transport"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404, 503],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+        transcribe: (input: ExperimentalVoiceTranscribeInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalVoiceTranscribeOutput }>(
+            {
+              method: "POST",
+              path: `/api/experimental/voice/transcribe`,
+              body: { audio: input["audio"], mime: input["mime"] },
               successStatus: 200,
               declaredStatuses: [400, 401, 404, 503],
               empty: false,
@@ -2712,6 +2726,8 @@ export function make(options: ClientOptions) {
       models: client.experimental.voice.models,
       /** @deprecated Use `client.experimental.voice.session`. Removed in the next minor. */
       session: client.experimental.voice.session,
+      /** @deprecated Use `client.experimental.voice.transcribe`. Removed in the next minor. */
+      transcribe: client.experimental.voice.transcribe,
     },
     integration: {
       ...client.integration,

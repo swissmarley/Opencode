@@ -219,6 +219,7 @@ export const Definitions = {
   "prompt.stash": keybind("none", "Stash prompt"),
   "prompt.stash.pop": keybind("none", "Pop stashed prompt"),
   "prompt.stash.list": keybind("none", "List stashed prompts"),
+  "prompt.voice": keybind("<leader>space", "Dictate into the prompt: hold to talk, or tap to start and stop"),
 
   "prompt.clear": keybind("ctrl+c", "Clear input field"),
   "prompt.paste": keybind({ key: "ctrl+v", preventDefault: false }, "Paste from clipboard"),

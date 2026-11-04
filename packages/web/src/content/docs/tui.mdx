@@ -61,6 +61,22 @@ The output of the command is added to the conversation as a tool result.
 
 ---
 
+## Voice input
+
+Dictate a prompt instead of typing it. The `mic` button at the right of the prompt, below the input, records from your microphone, and the transcript is inserted at the cursor so you can edit it before you send it.
+
+- **Push to talk**: hold the button (or hold `space` after the leader key, `ctrl+x` by default), speak, and release to transcribe.
+- **Click to start and stop**: click the button (or tap the shortcut) to start, and click it again to stop and transcribe.
+- **Cancel**: press `escape` while recording to discard it.
+
+While recording, the button shows the elapsed time and a level meter. Recording stops on its own after five minutes.
+
+OpenCode records with its built-in audio engine on macOS, Linux and Windows, so no extra recording tool is needed. On macOS, the first recording asks for microphone access for your terminal app. If only silence is recorded, check that access in System Settings > Privacy & Security > Microphone.
+
+The server transcribes the recording. By default it uses OpenAI Whisper with the server's OpenAI API key (a key stored with `/connect`, or `OPENAI_API_KEY`). To use an OpenAI-compatible endpoint or a local Whisper model instead, set [`experimental.transcription`](/docs/config#voice-transcription) in `opencode.json`.
+
+---
+
 ## Commands
 
 When using the OpenCode TUI, you can type `/` followed by a command name to quickly execute actions. For example:
@@ -305,6 +321,18 @@ Check for a new version of OpenCode and install it. If a newer OpenCode 1 releas
 
 ---
 
+### voice
+
+Start voice input, or stop it and transcribe what you said into the prompt. [Learn more](#voice-input). _Aliases_: `/dictate`, `/mic`
+
+```bash frame="none"
+/voice
+```
+
+**Keybind:** `ctrl+x space`, hold to talk
+
+---
+
 ## Editor setup
 
 Both the `/editor` and `/export` commands use the editor specified in your `EDITOR` environment variable.
@@ -425,6 +453,7 @@ This is separate from `opencode.json`, which configures server/runtime behavior.
 - `cursor` - Controls the terminal cursor in TUI input fields. `style` defaults to `"block"`, can be `"underline"`, `"line"`, or `"default"`; `blinking` defaults to `true`. When `style` is `"default"`, the terminal default cursor is restored, so `blinking` has no effect.
 - `mouse` - Enable or disable mouse capture in the TUI (default: `true`). When disabled, the terminal's native mouse selection/scrolling behavior is preserved.
 - `attention` - Configures TUI desktop notifications and sounds. Disabled by default.
+- `voice` - Configures [voice input](#voice-input). `button` shows or hides the microphone button (default: `true`); `device` picks a microphone by part of its name, such as `"USB"` (default: the system input device).
 
 Use `OPENCODE_TUI_CONFIG` to load a custom TUI config path.
 

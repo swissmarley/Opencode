@@ -867,6 +867,75 @@ The `experimental` key contains options that are under active development.
 Experimental options are not stable. They may change or be removed without notice.
 :::
 
+#### Voice transcription
+
+`experimental.transcription` sets how the server transcribes [voice input](/docs/tui#voice-input) from the TUI. Without it, the server uses OpenAI's `whisper-1` with its OpenAI API key, a key stored with `/connect` or `OPENAI_API_KEY`. A ChatGPT sign-in can't transcribe audio.
+
+```json title="opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "experimental": {
+    "transcription": {
+      "model": "gpt-4o-mini-transcribe",
+      "language": "en",
+      "prompt": "OpenCode, TypeScript, Bun"
+    }
+  }
+}
+```
+
+- `provider` - `"openai"` (default) or `"local"`.
+- `model` - The transcription model, `whisper-1` by default. For `"local"`, the Whisper model file.
+- `language` - The spoken language as an ISO-639-1 code such as `"en"`. Detected automatically when omitted.
+- `prompt` - Words that guide spelling, such as project names and technical terms.
+- `base_url` - An OpenAI-compatible endpoint to use instead of OpenAI, such as a local whisper.cpp or faster-whisper server, or a hosted service.
+- `api_key` - The key for `base_url`, if it needs one. Use `{env:NAME}` to read it from the environment. The server's OpenAI key is only sent to OpenAI itself.
+- `command` - For `"local"`, the command to run instead of whisper.cpp's `whisper-cli`.
+
+To transcribe with a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model, install `whisper-cli`, download a model, and point `model` at it. Nothing leaves your machine:
+
+```json title="opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "experimental": {
+    "transcription": {
+      "provider": "local",
+      "model": "~/models/ggml-base.en.bin"
+    }
+  }
+}
+```
+
+A custom `command` must print the transcript on stdout. These placeholders are replaced in its arguments: `{file}` (the recording, a 16 kHz mono WAV file), `{model}`, `{language}` (`auto` when not set) and `{prompt}`. For example, to run whisper.cpp with eight threads:
+
+```json title="opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "experimental": {
+    "transcription": {
+      "provider": "local",
+      "model": "~/models/ggml-small.bin",
+      "command": ["whisper-cli", "-m", "{model}", "-f", "{file}", "-l", "{language}", "-nt", "-np", "-t", "8"]
+    }
+  }
+}
+```
+
+For an OpenAI-compatible service such as Groq:
+
+```json title="opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "experimental": {
+    "transcription": {
+      "base_url": "https://api.groq.com/openai/v1",
+      "api_key": "{env:GROQ_API_KEY}",
+      "model": "whisper-large-v3-turbo"
+    }
+  }
+}
+```
+
 ---
 
 ## Variables
