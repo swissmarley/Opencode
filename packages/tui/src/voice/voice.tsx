@@ -20,6 +20,8 @@ export const RELEASE_GAP_MS = 250
 /** OpenAI accepts uploads up to 25 MB; five minutes of 16 kHz WAV is under 10 MB. */
 export const MAX_SECONDS = 300
 const MIN_SECONDS = 0.3
+/** -60 dBFS, where the level meter starts. A whole recording below it heard nothing, not even room noise. */
+const SILENCE_PEAK = 0.001
 const METER_BARS = 5
 
 export type VoiceState = "idle" | "starting" | "recording" | "transcribing"
@@ -64,11 +66,7 @@ export function useVoiceInput(props: { insert: (text: string) => void; enabled: 
     setLevels([])
     setElapsed(0)
     const stream = await openCapture(config.voice?.device).catch((error: unknown) => {
-      if (current === attempt)
-        fail(
-          "Couldn't open the microphone",
-          `${errorMessage(error)}. Check that one is connected, or choose one with voice.device in cli.json.`,
-        )
+      if (current === attempt) fail("Couldn't open the microphone", `${errorMessage(error)} ${microphoneHint()}`)
       return undefined
     })
     if (!stream) return
@@ -125,12 +123,12 @@ export function useVoiceInput(props: { insert: (text: string) => void; enabled: 
     if (failed) return fail("Recording failed", failed)
     if (current.frames < current.stream.sampleRate * MIN_SECONDS) return finish()
     // macOS records digital silence when the terminal has no microphone permission.
-    if (current.peak === 0) {
+    if (current.peak < SILENCE_PEAK) {
       finish()
       toast.show({
         variant: "warning",
         title: "Only silence was recorded",
-        message: "Check that the microphone is unmuted and that your terminal app may use it.",
+        message: `Check that the microphone is unmuted. ${microphoneHint()}`,
         duration: 6000,
       })
       return
@@ -260,6 +258,19 @@ export function useVoiceInput(props: { insert: (text: string) => void; enabled: 
 }
 
 export type VoiceInput = ReturnType<typeof useVoiceInput>
+
+/** Where to look when no input starts, for the machine the TUI runs on, which is the one that records. */
+function microphoneHint() {
+  if (process.env.SSH_CONNECTION || process.env.SSH_TTY)
+    return "Over SSH, OpenCode records from the remote machine, not the one you're typing on."
+  if (process.platform === "darwin")
+    return "Allow your terminal app under System Settings > Privacy & Security > Microphone, then restart it."
+  if (process.platform === "win32")
+    return "Turn on microphone access for desktop apps under Settings > Privacy & security > Microphone."
+  if (process.env.WSL_DISTRO_NAME)
+    return "Under WSL, recording goes through WSLg's audio server (Windows 11), which needs the PulseAudio client library (libpulse0) installed."
+  return "Check that PulseAudio or PipeWire is running and its client library (libpulse) is installed, or pick an input with voice.device in cli.json."
+}
 
 /** Cells the button takes in a state, so the metadata beside it can leave room: `mic`, or the timer and meter. */
 export function voiceButtonWidth(state: VoiceState) {

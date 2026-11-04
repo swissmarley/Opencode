@@ -44,18 +44,37 @@ export function play(sound: AudioSound, options?: AudioPlayOptions) {
 
 /**
  * Opens a mono microphone stream on the shared engine. `device` picks the first input whose name contains it, ignoring
- * case; without it, or when nothing matches, the system default input records.
+ * case. The system default comes next, then every other input, because a default can be a disconnected headset or an
+ * input another app holds exclusively. When none starts, the error names the inputs that were found.
  */
 export async function openCapture(device?: string) {
   const current = getAudio()
-  if (!current) throw new Error("Audio is unavailable in this terminal session")
+  if (!current) throw new Error("Audio is unavailable in this terminal session.")
+  // ALSA lists its null device, which generates zeros, when a Linux machine has no sound card.
+  const devices = (current.listCaptureDevices() ?? []).filter((item) => !/generate zero samples/i.test(item.name))
   const needle = device?.trim().toLowerCase()
-  const match = needle
-    ? current.listCaptureDevices()?.find((item) => item.name.toLowerCase().includes(needle))
-    : undefined
-  if (match) current.selectCaptureDevice(match.index)
-  if (!match) current.clearCaptureDeviceSelection()
-  return current.openCapture({ channels: 1 })
+  const preferred = needle ? devices.find((item) => item.name.toLowerCase().includes(needle)) : undefined
+  // `undefined` asks the backend for its default input.
+  const candidates = [
+    ...(preferred ? [preferred] : []),
+    undefined,
+    ...devices.filter((item) => item !== preferred && !item.isDefault),
+  ]
+  for (const candidate of candidates) {
+    if (candidate) current.selectCaptureDevice(candidate.index)
+    if (!candidate) current.clearCaptureDeviceSelection()
+    const stream = await current.openCapture({ channels: 1 }).catch((error: unknown) => {
+      console.debug("failed to open tui capture", { device: candidate?.name ?? "default", error })
+      return undefined
+    })
+    if (!stream) continue
+    // A capture error with no listener would throw from the emitter; the readable rejects with it too.
+    stream.on("error", () => {})
+    return stream
+  }
+  if (devices.length === 0) throw new Error("No microphone was found.")
+  if (devices.length === 1) throw new Error(`${devices[0].name} wouldn't start recording.`)
+  throw new Error(`None of the inputs would start recording: ${devices.map((item) => item.name).join(", ")}.`)
 }
 
 export function dispose() {

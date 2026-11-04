@@ -377,6 +377,14 @@ To change the voice shortcut, set `prompt.voice` under `keybinds` in `cli.json`,
 Connect an OpenAI API key with `/connect`, or set up a local model or another endpoint as described in
 [Voice transcription](#voice-transcription).
 
+**Voice input says "Couldn't open the microphone".**
+OpenCode tries the input you set in `voice.device`, then the system default, then every other input, and the message
+lists what it found. Recording uses the microphone of the machine OpenCode runs on, so over SSH or in a container or VM
+it is that machine's microphone. On macOS, allow your terminal app under System Settings > Privacy & Security >
+Microphone and restart it. On Linux, OpenCode records through PulseAudio or PipeWire, which needs their client library
+(`libpulse`, for example the `libpulse0` package on Debian and Ubuntu); without it, it can only reach raw ALSA devices.
+Under WSL, install `libpulse0` so OpenCode can reach WSLg's audio server (Windows 11).
+
 **Voice input only records silence.**
 Your terminal app needs microphone access. On macOS, turn it on in System Settings > Privacy & Security > Microphone
 and restart the terminal. Also check that the microphone isn't muted, or pick another one with `"voice": { "device":
