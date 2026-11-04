@@ -73,7 +73,7 @@ While recording, the button shows the elapsed time and a level meter. Recording 
 
 OpenCode records with its built-in audio engine on macOS, Linux and Windows, so no extra recording tool is needed. On macOS, the first recording asks for microphone access for your terminal app. If only silence is recorded, check that access in System Settings > Privacy & Security > Microphone.
 
-The server transcribes the recording. By default it uses OpenAI Whisper with the server's OpenAI API key (a key stored with `/connect`, or `OPENAI_API_KEY`). To use an OpenAI-compatible endpoint or a local Whisper model instead, set [`experimental.transcription`](/docs/config#voice-transcription) in `opencode.json`.
+The server transcribes the recording. It uses OpenAI Whisper when it has an OpenAI API key (a key stored with `/connect`, or `OPENAI_API_KEY`), and otherwise a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model it finds in `~/models`. To choose explicitly or use an OpenAI-compatible endpoint, set [`experimental.transcription`](/docs/config#voice-transcription) in `opencode.json`.
 
 ---
 

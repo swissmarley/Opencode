@@ -6,11 +6,11 @@ import { optional } from "../schema.js"
 export class Info extends Schema.Class<Info>("ConfigTranscription.Info")({
   provider: Schema.Literals(["openai", "local"]).pipe(optional).annotate({
     description:
-      "Where speech is transcribed: 'openai' (default) uses OpenAI's transcription API, or any OpenAI-compatible endpoint set with base_url; 'local' runs a Whisper command on the server",
+      "Where speech is transcribed: 'openai' uses OpenAI's transcription API, or any OpenAI-compatible endpoint set with base_url; 'local' runs a Whisper command on the server. When omitted, OpenAI if the server has an OpenAI API key, otherwise whisper.cpp",
   }),
   model: Schema.String.pipe(optional).annotate({
     description:
-      "For 'openai', the transcription model (default: whisper-1). For 'local', the Whisper model file passed to the command as {model}, such as ~/models/ggml-base.en.bin",
+      "For 'openai', the transcription model (default: whisper-1). For local transcription, the Whisper model file passed to the command as {model}; when omitted, the first ggml-*.bin in OpenCode's data folder under whisper/, or in ~/models",
   }),
   language: Schema.String.pipe(optional).annotate({
     description: "Spoken language as an ISO-639-1 code such as 'en'. Detected automatically when omitted",
