@@ -76,7 +76,7 @@ test("exposes every standard HTTP API group", () => {
     "instructions",
     "log",
   ])
-  expect(Object.keys(client.experimental.voice)).toEqual(["models", "session"])
+  expect(Object.keys(client.experimental.voice)).toEqual(["models", "session", "transcribe"])
   expect(Object.keys(client.experimental.usage)).toEqual(["limits"])
   expect(Object.keys(client.experimental.mcp)).toEqual(["add", "remove", "connect", "disconnect", "client"])
   expect(Object.keys(client.experimental.integration.wellknown)).toEqual(["add"])
@@ -166,6 +166,8 @@ test("nests a method under client.experimental exactly when its route is experim
     "usage.limits",
     "voice.models",
     "voice.session",
+    // The voice group moved under experimental, so the codegen aliases each of its endpoints.
+    "voice.transcribe",
   ])
   expect(Object.keys(client.shell)).toEqual(["list", "create", "get", "output", "remove"])
   expect(Object.keys(client.project)).toEqual(["list", "update"])

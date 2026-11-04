@@ -10,6 +10,8 @@ companion that keeps you company while the agent works:
   border rail beside messages and the prompt, the spinner, and a home screen tagline or logo.
 - **Tilde, the mascot**, is a pixel-art companion floating over the interface. It acts out what the agent is doing in
   real time, says so in a speech bubble, and lets you approve or deny permission requests from any session.
+- **Voice input** lets you dictate prompts: hold the microphone button beside the prompt and talk, or click it to start
+  and stop. The transcript lands in the prompt for you to edit before you send it.
 
 A skin never changes the mood: the background keeps running under every skin and only takes on the skin's colors.
 
@@ -96,6 +98,22 @@ session events as they happen.
   With interface animations off it is hidden by default, and shows still frames if you turn it on.
 
 ![Tilde asking for permission to run a command](.github/assets/mascot-approval.png)
+
+### Voice input
+
+- **A microphone button in the prompt.** `mic` sits at the right of the prompt, below the input. While it records it
+  shows the elapsed time and a live level meter, so you can see that the microphone hears you.
+- **Push to talk or click to toggle.** Hold the button, speak and let go to transcribe. Or click it once to start and
+  again to stop. The keyboard works the same way: hold `space` after `Ctrl+X` to talk, or tap it to start and stop.
+  `Escape` throws a recording away. `/voice` (or `/dictate`) does the same from the prompt or the command palette.
+- **You stay in control.** The transcript is inserted at the cursor, spaced from the words around it, and nothing is
+  sent until you press Enter.
+- **No extra tools to record.** OpenCode records with its built-in audio engine on macOS, Linux and Windows.
+- **OpenAI Whisper or fully local.** The OpenCode server transcribes the audio. By default it uses OpenAI Whisper with
+  the OpenAI key you connected, which never reaches the terminal. Point it at any OpenAI-compatible endpoint (a local
+  whisper.cpp or faster-whisper server, or a hosted one such as Groq), or run a local
+  [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model so no audio leaves your machine. See
+  [Voice transcription](#voice-transcription) below.
 
 ## Before you start
 
@@ -195,6 +213,9 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
 - **Type `/skins`** to browse the skins with a live preview, then press Enter to keep one.
 - **Meet Tilde** in the bottom-right corner. Click it, drag it somewhere else, or type `/mascot` to hide it and bring
   it back.
+- **Dictate a prompt.** Hold `mic` at the right of the prompt, say what you want and let go. The first time, your
+  terminal app may ask for microphone access. Voice input needs an OpenAI API key from step 5, or one of the other
+  setups in [Voice transcription](#voice-transcription).
 
 ### Step 7 (optional): Install it as your `opencode` command
 
@@ -282,6 +303,7 @@ apply while OpenCode is running.
 | `background` | `"vortex"`, `"watermark"`, `"matrix"`, `"ripple"`, `"warp"`, `"embers"`, `"aurora"`, `"off"` | Picks the background (the mood). Defaults to `"vortex"`.                                                              |
 | `animations` | `true`, `false`                                                                              | With `false`, the background defaults to `"off"`. If you also set `background` yourself, it shows as a still picture. |
 | `mascot`     | `true`, `false`                                                                              | Shows Tilde, the mascot. On by default, off by default when `animations` is `false`.                                  |
+| `voice`      | `{ "button": false }`, `{ "device": "USB" }`                                                 | `button` shows or hides the microphone button (on by default). `device` picks a microphone by part of its name.       |
 | `mouse`      | `true`, `false`                                                                              | Mouse capture. The mouse wake needs this on (it is on by default).                                                    |
 
 > [!NOTE]
@@ -309,7 +331,56 @@ The toggle is `Ctrl+X`, then `V` by default. To use another key, add it to `cli.
 `<leader>` is `Ctrl+X` unless you changed it. `Ctrl+B` is possible, but OpenCode already uses it to move the cursor
 left in the prompt and to send blocking tools to the background, so binding it here takes those over.
 
+### Voice transcription
+
+The OpenCode server, not the terminal, turns your recording into text, so its settings go in the server's config file,
+`~/.config/opencode/opencode.json`. Without any settings it uses OpenAI's `whisper-1` with the OpenAI API key you
+connected with `/connect` (or `OPENAI_API_KEY`). A ChatGPT sign-in can't transcribe audio.
+
+To keep everything on your machine, install [whisper.cpp](https://github.com/ggml-org/whisper.cpp) so that
+`whisper-cli` is on your `PATH`, download a model such as `ggml-base.en.bin`, and add:
+
+```json
+{
+  "experimental": {
+    "transcription": {
+      "provider": "local",
+      "model": "~/models/ggml-base.en.bin"
+    }
+  }
+}
+```
+
+To use an OpenAI-compatible endpoint instead, such as a local faster-whisper server or Groq:
+
+```json
+{
+  "experimental": {
+    "transcription": {
+      "base_url": "https://api.groq.com/openai/v1",
+      "api_key": "{env:GROQ_API_KEY}",
+      "model": "whisper-large-v3-turbo"
+    }
+  }
+}
+```
+
+You can also set `language` (such as `"en"`, detected automatically otherwise) and a `prompt` with names and terms you
+use, to help with spelling. See [the config docs](packages/web/src/content/docs/config.mdx#voice-transcription) for
+every option. Your OpenAI key is only ever sent to OpenAI itself, never to a `base_url`.
+
+To change the voice shortcut, set `prompt.voice` under `keybinds` in `cli.json`, for example `"prompt.voice": "alt+m"`.
+
 ## Troubleshooting
+
+**Voice input says it needs an OpenAI API key.**
+Connect an OpenAI API key with `/connect`, or set up a local model or another endpoint as described in
+[Voice transcription](#voice-transcription).
+
+**Voice input only records silence.**
+Your terminal app needs microphone access. On macOS, turn it on in System Settings > Privacy & Security > Microphone
+and restart the terminal. Also check that the microphone isn't muted, or pick another one with `"voice": { "device":
+"<part of its name>" }` in `cli.json`.
 
 **I don't see the vortex at all.**
 Press `Ctrl+X`, then `V` to cycle the modes; it may be set to `off`. If you have `"animations": false`, the background

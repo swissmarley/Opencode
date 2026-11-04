@@ -318,6 +318,16 @@ export const settings: Setting[] = [
     keywords: ["paste summary", "clipboard", "pasted content"],
   },
   {
+    title: "Voice input",
+    category: "Input",
+    path: ["voice", "button"],
+    description: "Whether the microphone button for dictating prompts is shown beside the input",
+    default: true,
+    values: [false, true],
+    labels: ["off", "on"],
+    keywords: ["microphone", "mic", "dictation", "speech", "whisper", "push to talk", "transcription"],
+  },
+  {
     title: "Image previews",
     category: "Input",
     path: ["prompt", "image_preview"],

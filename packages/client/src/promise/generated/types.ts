@@ -218,6 +218,8 @@ export type VoiceWebRTCTransport = { type: "webrtc"; sdp: string }
 
 export type VoiceWebSocketTransport = { type: "websocket"; url: string; token: string; expiresAt: number }
 
+export type VoiceTranscribeResponse = { data: { text: string } }
+
 export type IntegrationID = string
 
 export type IntegrationMethodID = string
@@ -2521,6 +2523,15 @@ export type ConfigEntry =
             resource: string
             effect: "allow" | "deny"
           }>
+          transcription?: {
+            provider?: "openai" | "local"
+            model?: string
+            language?: string
+            prompt?: string
+            base_url?: string
+            api_key?: string
+            command?: Array<string>
+          }
         }
       }
     }
@@ -3935,6 +3946,10 @@ export type ExperimentalVoiceSessionInput = {
 
 export type ExperimentalVoiceSessionOutput = VoiceSessionResponse["data"]
 
+export type ExperimentalVoiceTranscribeInput = { readonly audio: string; readonly mime: string }
+
+export type ExperimentalVoiceTranscribeOutput = VoiceTranscribeResponse["data"]
+
 export type ProviderListInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
 
 export type ProviderListOutput = { location: LocationPublicRef; data: Array<ProviderInfo> }
@@ -4878,6 +4893,12 @@ export type VoiceSessionInput = ExperimentalVoiceSessionInput
 
 /** @deprecated Use `ExperimentalVoiceSessionOutput`. Removed in the next minor. */
 export type VoiceSessionOutput = ExperimentalVoiceSessionOutput
+
+/** @deprecated Use `ExperimentalVoiceTranscribeInput`. Removed in the next minor. */
+export type VoiceTranscribeInput = ExperimentalVoiceTranscribeInput
+
+/** @deprecated Use `ExperimentalVoiceTranscribeOutput`. Removed in the next minor. */
+export type VoiceTranscribeOutput = ExperimentalVoiceTranscribeOutput
 
 /** @deprecated Use `ExperimentalIntegrationWellknownAddInput`. Removed in the next minor. */
 export type IntegrationWellknownAddInput = ExperimentalIntegrationWellknownAddInput

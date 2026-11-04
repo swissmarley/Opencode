@@ -256,6 +256,19 @@ export const Info = Schema.Struct({
     description:
       "Animated background ('mood') behind the interface: vortex, watermark, matrix, ripple, warp, embers, aurora or off (default: vortex, or off when animations are disabled)",
   }),
+  voice: Schema.optional(
+    Schema.Struct({
+      button: Schema.optional(Schema.Boolean).annotate({
+        description: "Show the microphone button beside the prompt input (default: true)",
+      }),
+      device: Schema.optional(Schema.String).annotate({
+        description: "Microphone to record from, matched by part of its name; defaults to the system input device",
+      }),
+    }),
+  ).annotate({
+    description:
+      "Voice input: hold or click the microphone button, or the prompt.voice shortcut, to dictate into the prompt. The server transcribes it with its experimental.transcription config",
+  }),
   mascot: Schema.optional(Schema.Boolean).annotate({
     description:
       "Show Tilde, the animated mascot that follows the agent's activity and answers permission requests (default: on, or off when animations are disabled)",

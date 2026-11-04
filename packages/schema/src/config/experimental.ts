@@ -4,6 +4,7 @@ import { Schema } from "effect"
 import { NonNegativeInt, optional } from "../schema.js"
 import { ConfigModel } from "./model.js"
 import { ConfigPolicy } from "./policy.js"
+import { ConfigTranscription } from "./transcription.js"
 
 export class Info extends Schema.Class<Info>("ConfigExperimental.Info")({
   portable_shell_scanner: Schema.Boolean.pipe(optional).annotate({
@@ -51,5 +52,9 @@ export class Info extends Schema.Class<Info>("ConfigExperimental.Info")({
     }),
   policies: ConfigPolicy.Info.pipe(Schema.Array, optional).annotate({
     description: "Deprecated: use top-level policies. Ordered policies controlling access to configured resources",
+  }),
+  transcription: ConfigTranscription.Info.pipe(optional).annotate({
+    description:
+      "How voice input is transcribed into prompts: OpenAI Whisper by default, an OpenAI-compatible endpoint, or a local Whisper command",
   }),
 }) {}

@@ -42,6 +42,22 @@ export function play(sound: AudioSound, options?: AudioPlayOptions) {
   return current.play(sound, options)
 }
 
+/**
+ * Opens a mono microphone stream on the shared engine. `device` picks the first input whose name contains it, ignoring
+ * case; without it, or when nothing matches, the system default input records.
+ */
+export async function openCapture(device?: string) {
+  const current = getAudio()
+  if (!current) throw new Error("Audio is unavailable in this terminal session")
+  const needle = device?.trim().toLowerCase()
+  const match = needle
+    ? current.listCaptureDevices()?.find((item) => item.name.toLowerCase().includes(needle))
+    : undefined
+  if (match) current.selectCaptureDevice(match.index)
+  if (!match) current.clearCaptureDeviceSelection()
+  return current.openCapture({ channels: 1 })
+}
+
 export function dispose() {
   audio?.dispose()
   audio = undefined
