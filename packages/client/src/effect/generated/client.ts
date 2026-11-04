@@ -126,6 +126,9 @@ import type {
   ExperimentalVoiceSessionOutput,
   ExperimentalVoiceTranscribeInput,
   ExperimentalVoiceTranscribeOutput,
+  ExperimentalVoiceTranscriptionOutput,
+  ExperimentalVoiceSetupInput,
+  ExperimentalVoiceSetupOutput,
   ProviderListInput,
   ProviderListOutput,
   ProviderGetInput,
@@ -994,10 +997,25 @@ const EndpointExperimentalVoiceTranscribe =
       ),
     )
 
+const EndpointExperimentalVoiceTranscription = (raw: RawClient["server.voice"]) => () =>
+  preserveEffect<ExperimentalVoiceTranscriptionOutput>()(
+    raw["voice.transcription"]({}).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
+const EndpointExperimentalVoiceSetup = (raw: RawClient["server.voice"]) => (input: ExperimentalVoiceSetupInput) =>
+  preserveEffect<ExperimentalVoiceSetupOutput>()(
+    raw["voice.setup"]({ payload: { model: input["model"] } }).pipe(Effect.mapError(mapClientError)),
+  )
+
 const adaptGroupExperimentalVoice = (raw: RawClient["server.voice"]) => ({
   models: EndpointExperimentalVoiceModels(raw),
   session: EndpointExperimentalVoiceSession(raw),
   transcribe: EndpointExperimentalVoiceTranscribe(raw),
+  transcription: EndpointExperimentalVoiceTranscription(raw),
+  setup: EndpointExperimentalVoiceSetup(raw),
 })
 
 const EndpointProviderList = (raw: RawClient["server.provider"]) => (input?: ProviderListInput) =>
@@ -2043,6 +2061,10 @@ const adaptClient = (raw: RawClient) => {
       session: client.experimental.voice.session,
       /** @deprecated Use `client.experimental.voice.transcribe`. Removed in the next minor. */
       transcribe: client.experimental.voice.transcribe,
+      /** @deprecated Use `client.experimental.voice.transcription`. Removed in the next minor. */
+      transcription: client.experimental.voice.transcription,
+      /** @deprecated Use `client.experimental.voice.setup`. Removed in the next minor. */
+      setup: client.experimental.voice.setup,
     },
     integration: {
       ...client.integration,

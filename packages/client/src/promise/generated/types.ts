@@ -220,6 +220,18 @@ export type VoiceWebSocketTransport = { type: "websocket"; url: string; token: s
 
 export type VoiceTranscribeResponse = { data: { text: string } }
 
+export type VoiceTranscriptionStatus = {
+  ready: boolean
+  engine?: "openai" | "endpoint" | "local" | undefined
+  openai: boolean
+  whisper?: string | undefined
+  model?: string | undefined
+  homebrew: boolean
+  models: string
+  setup?: { step: "install" | "download"; received?: number | undefined; total?: number | undefined } | undefined
+  error?: string | undefined
+}
+
 export type IntegrationID = string
 
 export type IntegrationMethodID = string
@@ -729,6 +741,8 @@ export type GenerateChoiceAnswer = {
 export type VoiceModel = { model: string; provider: string; transports: Array<VoiceTransportType>; available: boolean }
 
 export type VoiceTransport = VoiceWebRTCTransport | VoiceWebSocketTransport
+
+export type VoiceTranscriptionResponse = { data: VoiceTranscriptionStatus }
 
 export type IntegrationCommandMethod = {
   id: IntegrationMethodID
@@ -3950,6 +3964,12 @@ export type ExperimentalVoiceTranscribeInput = { readonly audio: string; readonl
 
 export type ExperimentalVoiceTranscribeOutput = VoiceTranscribeResponse["data"]
 
+export type ExperimentalVoiceTranscriptionOutput = VoiceTranscriptionResponse["data"]
+
+export type ExperimentalVoiceSetupInput = { readonly model: "base.en" | "base" }
+
+export type ExperimentalVoiceSetupOutput = void
+
 export type ProviderListInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
 
 export type ProviderListOutput = { location: LocationPublicRef; data: Array<ProviderInfo> }
@@ -4899,6 +4919,15 @@ export type VoiceTranscribeInput = ExperimentalVoiceTranscribeInput
 
 /** @deprecated Use `ExperimentalVoiceTranscribeOutput`. Removed in the next minor. */
 export type VoiceTranscribeOutput = ExperimentalVoiceTranscribeOutput
+
+/** @deprecated Use `ExperimentalVoiceTranscriptionOutput`. Removed in the next minor. */
+export type VoiceTranscriptionOutput = ExperimentalVoiceTranscriptionOutput
+
+/** @deprecated Use `ExperimentalVoiceSetupInput`. Removed in the next minor. */
+export type VoiceSetupInput = ExperimentalVoiceSetupInput
+
+/** @deprecated Use `ExperimentalVoiceSetupOutput`. Removed in the next minor. */
+export type VoiceSetupOutput = ExperimentalVoiceSetupOutput
 
 /** @deprecated Use `ExperimentalIntegrationWellknownAddInput`. Removed in the next minor. */
 export type IntegrationWellknownAddInput = ExperimentalIntegrationWellknownAddInput

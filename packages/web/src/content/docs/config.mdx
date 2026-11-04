@@ -869,7 +869,7 @@ Experimental options are not stable. They may change or be removed without notic
 
 #### Voice transcription
 
-`experimental.transcription` sets how the server transcribes [voice input](/docs/tui#voice-input) from the TUI. Without it, the server uses OpenAI's `whisper-1` when it has an OpenAI API key, a key stored with `/connect` or `OPENAI_API_KEY`, and a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model otherwise. A ChatGPT sign-in can't transcribe audio, so it counts as no key.
+`experimental.transcription` sets how the server transcribes [voice input](/docs/tui#voice-input) from the TUI. Without it, the server uses OpenAI's `whisper-1` when it has an OpenAI API key, a key stored with `/connect` or `OPENAI_API_KEY`, and a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model otherwise. A ChatGPT sign-in can't transcribe audio, so it counts as no key. The TUI's `/voice-setup` dialog can set up either one without editing this file.
 
 ```json title="opencode.json"
 {

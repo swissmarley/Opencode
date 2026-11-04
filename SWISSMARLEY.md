@@ -215,7 +215,8 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
   it back.
 - **Dictate a prompt.** Hold `mic` at the right of the prompt, say what you want and let go. The first time, your
   terminal app may ask for microphone access. Voice input uses your OpenAI API key from step 5 if you connected one,
-  and otherwise a local whisper.cpp model; see [Voice transcription](#voice-transcription).
+  and otherwise a local whisper.cpp model. If neither is set up yet, the mic opens a setup dialog that installs
+  whisper.cpp and downloads a model for you, or takes an OpenAI API key; see [Voice transcription](#voice-transcription).
 
 ### Step 7 (optional): Install it as your `opencode` command
 
@@ -338,7 +339,14 @@ The OpenCode server, not the terminal, turns your recording into text, so its se
 API key with `/connect` (or set `OPENAI_API_KEY`), and a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
 model otherwise. A ChatGPT sign-in can't transcribe audio, so it counts as no key.
 
-To transcribe locally, install whisper.cpp and download a model into `~/models`. Nothing else is needed: OpenCode finds
+**The easy way:** press the mic. If voice input isn't set up yet, a **Set up voice input** dialog opens instead of
+recording (or type `/voice-setup` to open it any time):
+
+- **On this computer, English** / **any language**: OpenCode installs whisper.cpp with Homebrew if it's missing and
+  downloads a 142 MB model, showing the progress. Nothing leaves your machine.
+- **With an OpenAI API key**: paste your key into the form. It is stored like a key from `/connect`.
+
+**By hand**, or without Homebrew: install whisper.cpp and download a model into `~/models`. Nothing else is needed: OpenCode finds
 `whisper-cli` (Homebrew's folders included) and the first `ggml-*.bin` file in `~/.local/share/opencode/whisper` or
 `~/models`. On macOS:
 
@@ -387,8 +395,9 @@ To change the voice shortcut, set `prompt.voice` under `keybinds` in `cli.json`,
 ## Troubleshooting
 
 **Transcription fails and asks for whisper.cpp or an OpenAI API key.**
-Install whisper.cpp and download a model as described in [Voice transcription](#voice-transcription), or connect an
-OpenAI API key with `/connect`. The message says which of the two pieces for local transcription is missing.
+Type `/voice-setup` to install whisper.cpp and a model or enter an OpenAI API key, or set either up by hand as
+described in [Voice transcription](#voice-transcription). The message says which piece for local transcription is
+missing. If the setup dialog says Homebrew failed, run `brew update` and try again.
 
 **Voice input says "Couldn't open the microphone".**
 OpenCode tries the input you set in `voice.device`, then the system default, then every other input, and the message

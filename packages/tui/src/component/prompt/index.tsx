@@ -510,6 +510,13 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
+        title: "Set up voice input",
+        name: "prompt.voice.setup",
+        category: "Prompt",
+        slash: { name: "voice-setup" },
+        run: () => void voice.openSetup(),
+      },
+      {
         title: "View image attachments",
         name: "prompt.images.view",
         category: "Prompt",
@@ -683,6 +690,7 @@ export function Prompt(props: PromptProps) {
       "prompt.stash.list",
       "prompt.skills",
       "prompt.voice",
+      "prompt.voice.setup",
       "session.interrupt",
       "session.background",
       "session.move",

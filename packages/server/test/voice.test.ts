@@ -46,6 +46,18 @@ const voice = makeLocationNode({
           return Effect.fail(new Voice.UnavailableError({ message: "OpenAI API key is required", service: "openai" }))
         return Effect.succeed({ text: `heard ${audio} as ${input.mime}` })
       },
+      transcription: () =>
+        Effect.succeed({
+          ready: false,
+          engine: "local" as const,
+          openai: false,
+          homebrew: true,
+          models: "/data/whisper",
+        }),
+      setup: (input) =>
+        input.model === "base"
+          ? Effect.fail(new Voice.InvalidRequestError({ message: "Install whisper.cpp" }))
+          : Effect.void,
     }),
   ),
   deps: [],
@@ -134,5 +146,26 @@ it.live("routes experimental voice models, session and transcribe endpoints", ()
     expect((yield* transcribe("hello", "text/plain")).status).toBe(400)
     expect((yield* transcribe("invalid")).status).toBe(400)
     expect((yield* transcribe("unavailable")).status).toBe(503)
+
+    const status = yield* Effect.promise(() =>
+      handler(new Request("http://opencode.local/api/experimental/voice/transcription")),
+    )
+    expect(status.status).toBe(200)
+    expect(yield* Effect.promise(() => status.json())).toEqual({
+      data: { ready: false, engine: "local", openai: false, homebrew: true, models: "/data/whisper" },
+    })
+    const setup = (model: string) =>
+      Effect.promise(() =>
+        handler(
+          new Request("http://opencode.local/api/experimental/voice/transcription/setup", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ model }),
+          }),
+        ),
+      )
+    expect((yield* setup("base.en")).status).toBe(204)
+    expect((yield* setup("base")).status).toBe(400)
+    expect((yield* setup("large")).status).toBe(400)
   }),
 )
