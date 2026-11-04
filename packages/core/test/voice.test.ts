@@ -82,13 +82,19 @@ const voiceLayer = (
   executor: Layer.Layer<RequestExecutor.Service>,
   transcription?: ConfigTranscription.Info,
   // No models are found in these folders unless a test puts one there.
-  global = Global.make({ data: "/nonexistent/opencode-data", home: "/nonexistent/opencode-home" }),
+  global = Global.make({
+    data: "/nonexistent/opencode-data",
+    home: "/nonexistent/opencode-home",
+    bin: "/nonexistent/opencode-bin",
+  }),
+  downloads: HttpClient.HttpClient = HttpClient.make(() => Effect.die("unexpected download")),
 ) =>
   Voice.layer.pipe(
     Layer.provide([
       integration,
       executor,
       Layer.succeed(Global.Service, global),
+      Layer.succeed(HttpClient.HttpClient, downloads),
       Config.testLayer(
         transcription
           ? [
@@ -380,5 +386,90 @@ it.live("falls back to whisper.cpp without an OpenAI key, finding a downloaded m
     expect(yield* transcribe(signInOnly, { command }, [], Global.make({ data, home }))).toEqual({
       text: path.join(home, "models", "ggml-base.en.bin"),
     })
+  }),
+)
+
+const status = (
+  connections: Partial<Record<string, Integration.Info["connections"]>>,
+  transcription: ConfigTranscription.Info | undefined,
+) =>
+  Effect.flatMap(Voice.Service, (voice) => voice.transcription()).pipe(
+    Effect.provide(
+      voiceLayer(
+        mockIntegration((id) => connections[id] ?? []),
+        Layer.mock(RequestExecutor.Service, {}),
+        transcription,
+      ),
+    ),
+  )
+
+it.effect("reports what transcription would use and whether it is ready, without resolving credentials", () =>
+  Effect.gen(function* () {
+    const key = { openai: [credential("stored", "key")] }
+    const signInOnly = { openai: [credential("chatgpt", "oauth")] }
+    expect(yield* status(key, undefined)).toMatchObject({ ready: true, engine: "openai", openai: true })
+    expect(yield* status(signInOnly, { base_url: "http://127.0.0.1:8080/v1" })).toMatchObject({
+      ready: true,
+      engine: "endpoint",
+      openai: false,
+    })
+    expect(yield* status(signInOnly, { command: ["whisper-local"] })).toMatchObject({ ready: true, engine: "local" })
+    // No model can be found in the test's folders, so local transcription isn't ready even where whisper-cli is.
+    expect(yield* status(signInOnly, undefined)).toMatchObject({
+      ready: false,
+      engine: "local",
+      openai: false,
+      models: "/nonexistent/opencode-data/whisper",
+    })
+    expect(yield* status(key, { provider: "local" })).toMatchObject({ ready: false, engine: "local", openai: true })
+  }),
+)
+
+it.live("sets up whisper.cpp by downloading a model next to an installed whisper-cli", () =>
+  Effect.gen(function* () {
+    const tmp = yield* tmpdirScoped()
+    const global = Global.make({
+      data: path.join(tmp.path, "data"),
+      home: path.join(tmp.path, "home"),
+      bin: path.join(tmp.path, "bin"),
+    })
+    // A stand-in whisper-cli in OpenCode's bin folder, so setup skips installing it.
+    yield* Effect.promise(async () => {
+      await fs.mkdir(global.bin, { recursive: true })
+      const name = process.platform === "win32" ? "whisper-cli.cmd" : "whisper-cli"
+      await fs.writeFile(path.join(global.bin, name), "#!/bin/sh\n", { mode: 0o755 })
+    })
+    const requested: string[] = []
+    const model = new Uint8Array(4096).fill(7)
+    const downloads = HttpClient.make((req: HttpClientRequest.HttpClientRequest) =>
+      Effect.sync(() => {
+        requested.push(req.url)
+        return HttpClientResponse.fromWeb(
+          req,
+          new Response(model, { headers: { "content-length": String(model.length) } }),
+        )
+      }),
+    )
+    const voiceWith = voiceLayer(
+      mockIntegration(() => []),
+      Layer.mock(RequestExecutor.Service, {}),
+      undefined,
+      global,
+      downloads,
+    )
+    const result = yield* Effect.gen(function* () {
+      const voice = yield* Voice.Service
+      expect(yield* voice.transcription()).toMatchObject({ ready: false, engine: "local" })
+      yield* voice.setup({ model: "base" })
+      const deadline = Date.now() + 10_000
+      while ((yield* voice.transcription()).setup && Date.now() < deadline) yield* Effect.sleep("10 millis")
+      return yield* voice.transcription()
+    }).pipe(Effect.provide(voiceWith))
+
+    const target = path.join(global.data, "whisper", "ggml-base.bin")
+    expect(requested).toEqual(["https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"])
+    expect(result).toMatchObject({ ready: true, engine: "local", model: target })
+    expect(result.error).toBeUndefined()
+    expect(new Uint8Array(yield* Effect.promise(() => fs.readFile(target)))).toEqual(model)
   }),
 )

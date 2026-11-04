@@ -7,8 +7,10 @@ import { useConfig } from "../config"
 import { useClient } from "../context/client"
 import { Keymap } from "../context/keymap"
 import { useTheme } from "../context/theme"
+import { useDialog } from "../ui/dialog"
 import { useToast } from "../ui/toast"
 import { errorMessage } from "../util/error"
+import { DialogVoiceSetup } from "./setup"
 import { encodeWav, level, meter } from "./wav"
 
 /** A pointer press held at least this long is push-to-talk: releasing it stops. A quicker click toggles recording on. */
@@ -44,6 +46,7 @@ export function useVoiceInput(props: { insert: (text: string) => void; enabled: 
   const config = useConfig().data
   const renderer = useRenderer()
   const toast = useToast()
+  const dialog = useDialog()
   const [state, setState] = createSignal<VoiceState>("idle")
   const [levels, setLevels] = createSignal<number[]>([])
   const [elapsed, setElapsed] = createSignal(0)
@@ -65,6 +68,16 @@ export function useVoiceInput(props: { insert: (text: string) => void; enabled: 
     setState("starting")
     setLevels([])
     setElapsed(0)
+    // Without a way to transcribe, recording would be wasted, so setup comes first. A server without this
+    // endpoint answers with an error, and recording goes ahead as before.
+    const status = await client.api.experimental.voice.transcription().catch(() => undefined)
+    if (current !== attempt || disposed) return
+    if (status && !status.ready) {
+      release()
+      finish()
+      dialog.replace(() => <DialogVoiceSetup status={status} />)
+      return
+    }
     const stream = await openCapture(config.voice?.device).catch((error: unknown) => {
       if (current === attempt) fail("Couldn't open the microphone", `${errorMessage(error)} ${microphoneHint()}`)
       return undefined
@@ -254,7 +267,15 @@ export function useVoiceInput(props: { insert: (text: string) => void; enabled: 
     cancel()
   })
 
-  return { state, levels, elapsed, keyPress, pointerDown, pointerUp, cancel }
+  async function openSetup() {
+    const status = await client.api.experimental.voice.transcription().catch((error: unknown) => {
+      toast.show({ variant: "error", title: "Couldn't check voice input", message: errorMessage(error) })
+      return undefined
+    })
+    if (status) dialog.replace(() => <DialogVoiceSetup status={status} />)
+  }
+
+  return { state, levels, elapsed, keyPress, pointerDown, pointerUp, cancel, openSetup }
 }
 
 export type VoiceInput = ReturnType<typeof useVoiceInput>

@@ -5819,6 +5819,140 @@
         }
       }
     },
+    "/api/experimental/voice/transcription": {
+      "get": {
+        "tags": ["voice"],
+        "operationId": "experimental.voice.transcription",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "VoiceTranscriptionResponse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceTranscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "InvalidRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorEncoded"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "LocationNotFoundError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationNotFoundErrorEncoded"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ServiceUnavailableError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableErrorEncoded"
+                }
+              }
+            }
+          }
+        },
+        "description": "Experimental: may change without compatibility guarantees. Report what would transcribe voice input, whether it is ready, what local whisper.cpp setup still needs, and the progress of a running setup.",
+        "summary": "Get transcription status"
+      }
+    },
+    "/api/experimental/voice/transcription/setup": {
+      "post": {
+        "tags": ["voice"],
+        "operationId": "experimental.voice.setup",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "<No Content>"
+          },
+          "400": {
+            "description": "InvalidRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorEncoded"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "LocationNotFoundError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationNotFoundErrorEncoded"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ServiceUnavailableError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableErrorEncoded"
+                }
+              }
+            }
+          }
+        },
+        "description": "Experimental: may change without compatibility guarantees. Start setting up whisper.cpp on the server in the background: install it with Homebrew when it is missing, then download the model when none is found. Poll the transcription status for progress.",
+        "summary": "Set up local transcription",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "$ref": "#/components/schemas/VoiceLocalModel"
+                  }
+                },
+                "required": ["model"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
     "/api/provider": {
       "get": {
         "tags": ["provider"],
@@ -25615,6 +25749,11 @@
         "required": ["_tag", "providerID", "message"],
         "additionalProperties": false
       },
+      "VoiceLocalModel": {
+        "type": "string",
+        "enum": ["base.en", "base"],
+        "description": "whisper.cpp model: base.en understands English only, base any language; both are about 142 MB"
+      },
       "VoiceModel": {
         "type": "object",
         "properties": {
@@ -25699,6 +25838,131 @@
           }
         },
         "required": ["data"],
+        "additionalProperties": false
+      },
+      "VoiceTranscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoiceTranscriptionStatus"
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false
+      },
+      "VoiceTranscriptionStatus": {
+        "type": "object",
+        "properties": {
+          "ready": {
+            "type": "boolean",
+            "description": "Whether a recording would be transcribed now"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["openai", "endpoint", "local"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What would transcribe: OpenAI, a configured OpenAI-compatible endpoint, or whisper.cpp on the server"
+          },
+          "openai": {
+            "type": "boolean",
+            "description": "Whether the server has an OpenAI API key"
+          },
+          "whisper": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Path of whisper.cpp's whisper-cli"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Path of the whisper.cpp model"
+          },
+          "homebrew": {
+            "type": "boolean",
+            "description": "Whether setup can install whisper.cpp with Homebrew"
+          },
+          "models": {
+            "type": "string",
+            "description": "Folder setup downloads models into"
+          },
+          "setup": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "step": {
+                    "type": "string",
+                    "enum": ["install", "download"]
+                  },
+                  "received": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["Infinity", "-Infinity", "NaN"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "total": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["Infinity", "-Infinity", "NaN"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["step"],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Local setup in progress; the download counts bytes"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the last local setup failed"
+          }
+        },
+        "required": ["ready", "openai", "homebrew", "models"],
         "additionalProperties": false
       },
       "VoiceTransport": {

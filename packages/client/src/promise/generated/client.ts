@@ -120,6 +120,9 @@ import type {
   ExperimentalVoiceSessionOutput,
   ExperimentalVoiceTranscribeInput,
   ExperimentalVoiceTranscribeOutput,
+  ExperimentalVoiceTranscriptionOutput,
+  ExperimentalVoiceSetupInput,
+  ExperimentalVoiceSetupOutput,
   ProviderListInput,
   ProviderListOutput,
   ProviderGetInput,
@@ -1254,6 +1257,29 @@ export function make(options: ClientOptions) {
             },
             requestOptions,
           ).then((value) => value.data),
+        transcription: (requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalVoiceTranscriptionOutput }>(
+            {
+              method: "GET",
+              path: `/api/experimental/voice/transcription`,
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404, 503],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+        setup: (input: ExperimentalVoiceSetupInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalVoiceSetupOutput>(
+            {
+              method: "POST",
+              path: `/api/experimental/voice/transcription/setup`,
+              body: { model: input["model"] },
+              successStatus: 204,
+              declaredStatuses: [400, 401, 404, 503],
+              empty: true,
+            },
+            requestOptions,
+          ),
       },
       integration: {
         wellknown: {
@@ -2728,6 +2754,10 @@ export function make(options: ClientOptions) {
       session: client.experimental.voice.session,
       /** @deprecated Use `client.experimental.voice.transcribe`. Removed in the next minor. */
       transcribe: client.experimental.voice.transcribe,
+      /** @deprecated Use `client.experimental.voice.transcription`. Removed in the next minor. */
+      transcription: client.experimental.voice.transcription,
+      /** @deprecated Use `client.experimental.voice.setup`. Removed in the next minor. */
+      setup: client.experimental.voice.setup,
     },
     integration: {
       ...client.integration,

@@ -13,10 +13,12 @@ import { configure } from "@opencode/ai/providers/openai"
 import { RequestExecutor } from "@opencode/ai/route"
 import type { ConfigTranscription } from "@opencode/schema/config/transcription"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
+import { httpClient } from "@opencode/util/effect/app-node-platform"
 import { FSUtil } from "@opencode/util/fs-util"
 import { Global } from "@opencode/util/global"
 import { AppProcess } from "@opencode/util/process"
-import { Context, Effect, Layer, Redacted, Schema } from "effect"
+import { Context, Effect, FiberHandle, Layer, Redacted, Schema, Stream } from "effect"
+import { HttpClient, HttpClientRequest } from "effect/http"
 import { ChildProcess } from "effect/process"
 import os from "os"
 import path from "path"
@@ -54,6 +56,29 @@ export interface Transcript {
   readonly text: string
 }
 
+/** whisper.cpp models offered by setup: English only, or any language. Both are about 142 MB. */
+export const LocalModels = ["base.en", "base"] as const
+export type LocalModel = (typeof LocalModels)[number]
+
+export interface TranscriptionStatus {
+  /** Whether a recording would be transcribed now. */
+  readonly ready: boolean
+  /** What would transcribe it: OpenAI, a configured OpenAI-compatible endpoint, or whisper.cpp on this machine. */
+  readonly engine?: "openai" | "endpoint" | "local"
+  /** Whether the server has an OpenAI API key. */
+  readonly openai: boolean
+  readonly whisper?: string
+  readonly model?: string
+  /** Whether setup can install whisper.cpp with Homebrew. */
+  readonly homebrew: boolean
+  /** Where setup puts downloaded models. */
+  readonly models: string
+  /** Local setup in progress: installing whisper.cpp, then downloading a model, in bytes. */
+  readonly setup?: { readonly step: "install" | "download"; readonly received?: number; readonly total?: number }
+  /** Why the last local setup failed. */
+  readonly error?: string
+}
+
 export class InvalidRequestError extends Schema.TaggedError<InvalidRequestError>()("Voice.InvalidRequestError", {
   message: Schema.String,
 }) {}
@@ -70,6 +95,13 @@ export interface Interface {
   readonly session: (input: SessionInput) => Effect.Effect<RealtimeTransport, Error>
   /** Transcribes a recording with `experimental.transcription` from the server's config. */
   readonly transcribe: (input: TranscribeInput) => Effect.Effect<Transcript, Error>
+  /** What transcription would use now and what local setup still needs. */
+  readonly transcription: () => Effect.Effect<TranscriptionStatus>
+  /**
+   * Starts local setup in the background: installs whisper.cpp with Homebrew when it is missing, then downloads
+   * `model` when no model is found. `transcription()` reports its progress. A setup already running is left alone.
+   */
+  readonly setup: (input: { readonly model: LocalModel }) => Effect.Effect<void, Error>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Voice") {}
@@ -84,6 +116,12 @@ export const layer = Layer.effect(
     const processes = yield* AppProcess.Service
     const global = yield* Global.Service
     const transcriptions = yield* TranscriptionClient.Service
+    const http = HttpClient.filterStatusOk(yield* HttpClient.HttpClient)
+    const setupFiber = yield* FiberHandle.make<void, never>()
+    const local: { job?: NonNullable<TranscriptionStatus["setup"]>; error?: string } = {}
+    // The background server may start without the login shell's PATH, so Homebrew's folders are searched too, after
+    // OpenCode's own bin folder.
+    const findWhisper = () => which("whisper-cli", undefined, [global.bin, homebrewBins].join(path.delimiter))
 
     // Integration lists the active credential first, then newer stored credentials, then non-empty env vars.
     const findConnection = (provider: string, methods: readonly string[] = ["key"]) =>
@@ -271,14 +309,100 @@ export const layer = Layer.effect(
       return undefined
     }
 
-    return Service.of({ models, session, transcribe })
+    const transcription = Effect.fn("Voice.transcription")(function* () {
+      const settings = Config.latest(yield* config.entries(), "experimental")?.transcription ?? {}
+      const openai = (yield* findConnection("openai")) !== undefined
+      const whisper = findWhisper() ?? undefined
+      const model = settings.model ? expandHome(settings.model) : yield* findModel()
+      const localReady = settings.command !== undefined || (whisper !== undefined && model !== undefined)
+      const engine = settings.base_url
+        ? ("endpoint" as const)
+        : settings.provider === "openai" || (settings.provider !== "local" && openai)
+          ? ("openai" as const)
+          : ("local" as const)
+      return {
+        ready: engine === "endpoint" || (engine === "openai" ? openai : localReady),
+        engine,
+        openai,
+        whisper,
+        model,
+        homebrew: findBrew() !== null,
+        models: modelDirectories(global)[0],
+        ...(local.job ? { setup: { ...local.job } } : {}),
+        ...(local.error ? { error: local.error } : {}),
+      } satisfies TranscriptionStatus
+    })
+
+    const setup = Effect.fn("Voice.setup")(function* (input: { readonly model: LocalModel }) {
+      if (local.job) return
+      const brew = findBrew()
+      if (!findWhisper() && !brew)
+        return yield* new InvalidRequestError({
+          message: localMissing({}, null, undefined) ?? missingTranscriptionMessage,
+        })
+      local.error = undefined
+      local.job = { step: findWhisper() ? "download" : "install" }
+      yield* FiberHandle.run(
+        setupFiber,
+        installLocal(input.model, brew).pipe(
+          Effect.catch((error: { readonly message: string }) =>
+            Effect.sync(() => {
+              local.error = error.message
+            }),
+          ),
+          Effect.ensuring(
+            Effect.sync(() => {
+              local.job = undefined
+            }),
+          ),
+        ),
+      )
+    })
+
+    const installLocal = Effect.fnUntraced(function* (model: LocalModel, brew: string | null) {
+      if (!findWhisper() && brew) {
+        local.job = { step: "install" }
+        // Without auto-update, installing doesn't wait on a full Homebrew update first.
+        yield* processes
+          .run(
+            ChildProcess.make(brew, ["install", "whisper-cpp"], {
+              extendEnv: true,
+              env: { HOMEBREW_NO_AUTO_UPDATE: "1", HOMEBREW_NO_ENV_HINTS: "1" },
+              stdin: "ignore",
+            }),
+            { timeout: "15 minutes" },
+          )
+          .pipe(Effect.flatMap(AppProcess.requireSuccess))
+      }
+      if (yield* findModel()) return
+      local.job = { step: "download" }
+      const directory = modelDirectories(global)[0]
+      const target = path.join(directory, `ggml-${model}.bin`)
+      // The partial file doesn't match ggml-*.bin, so a failed download is never picked up as a model.
+      const partial = `${target}.download`
+      yield* fs.ensureDir(directory)
+      const response = yield* http.execute(HttpClientRequest.get(`${modelSource}/ggml-${model}.bin`))
+      const total = Number(response.headers["content-length"])
+      local.job = { step: "download", received: 0, ...(Number.isFinite(total) && total > 0 ? { total } : {}) }
+      yield* response.stream.pipe(
+        Stream.tap((chunk) =>
+          Effect.sync(() => {
+            if (local.job) local.job = { ...local.job, received: (local.job.received ?? 0) + chunk.length }
+          }),
+        ),
+        Stream.run(fs.sink(partial)),
+      )
+      yield* fs.rename(partial, target)
+    })
+
+    return Service.of({ models, session, transcribe, transcription, setup })
   }),
 ).pipe(Layer.provide(TranscriptionClient.layer))
 
 export const node = makeLocationNode({
   service: Service,
   layer,
-  deps: [Integration.node, Config.node, FSUtil.node, AppProcess.node, Global.node, requestExecutor],
+  deps: [Integration.node, Config.node, FSUtil.node, AppProcess.node, Global.node, requestExecutor, httpClient],
 })
 
 /** whisper.cpp prints one line per segment; these flags drop its timestamps and progress output. */
@@ -311,11 +435,13 @@ const audioExtension = (mime: string) => {
 const expandHome = (file: string) =>
   file === "~" || file.startsWith("~/") ? path.join(os.homedir(), file.slice(1)) : file
 
-/**
- * whisper.cpp's CLI. The background server may start without the login shell's PATH, so Homebrew's folders are
- * searched too.
- */
-const findWhisper = () => which("whisper-cli", undefined, ["/opt/homebrew/bin", "/usr/local/bin"].join(path.delimiter))
+/** Homebrew, to install whisper.cpp; also looked up in its own folders, which a background server's PATH may lack. */
+const findBrew = () => which("brew", undefined, homebrewBins)
+
+const homebrewBins = ["/opt/homebrew/bin", "/usr/local/bin", "/home/linuxbrew/.linuxbrew/bin"].join(path.delimiter)
+
+/** whisper.cpp's own model repository. */
+const modelSource = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main"
 
 /** Where downloaded whisper.cpp models are found when none is configured: OpenCode's data folder, then ~/models. */
 const modelDirectories = (global: Global.Interface) => [

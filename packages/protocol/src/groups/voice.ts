@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/http-api"
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/http-api"
 import { InvalidRequestError, LocationNotFoundError, ServiceUnavailableError } from "../errors.js"
 
 export const VoiceTransportType = Schema.Literals(["webrtc", "websocket"]).annotate({
@@ -44,6 +44,31 @@ export const VoiceTransport = Schema.Union([
   VoiceWebRTCTransport,
   VoiceWebSocketTransport,
 ]).annotate({ identifier: "VoiceTransport" })
+
+export const VoiceTranscriptionStatus = Schema.Struct({
+  ready: Schema.Boolean.annotate({ description: "Whether a recording would be transcribed now" }),
+  engine: Schema.optional(Schema.Literals(["openai", "endpoint", "local"])).annotate({
+    description: "What would transcribe: OpenAI, a configured OpenAI-compatible endpoint, or whisper.cpp on the server",
+  }),
+  openai: Schema.Boolean.annotate({ description: "Whether the server has an OpenAI API key" }),
+  whisper: Schema.optional(Schema.String).annotate({ description: "Path of whisper.cpp's whisper-cli" }),
+  model: Schema.optional(Schema.String).annotate({ description: "Path of the whisper.cpp model" }),
+  homebrew: Schema.Boolean.annotate({ description: "Whether setup can install whisper.cpp with Homebrew" }),
+  models: Schema.String.annotate({ description: "Folder setup downloads models into" }),
+  setup: Schema.optional(
+    Schema.Struct({
+      step: Schema.Literals(["install", "download"]),
+      received: Schema.optional(Schema.Number),
+      total: Schema.optional(Schema.Number),
+    }),
+  ).annotate({ description: "Local setup in progress; the download counts bytes" }),
+  error: Schema.optional(Schema.String).annotate({ description: "Why the last local setup failed" }),
+}).annotate({ identifier: "VoiceTranscriptionStatus" })
+
+export const VoiceLocalModel = Schema.Literals(["base.en", "base"]).annotate({
+  identifier: "VoiceLocalModel",
+  description: "whisper.cpp model: base.en understands English only, base any language; both are about 142 MB",
+})
 
 export const VoiceGroup = HttpApiGroup.make("server.voice")
   .add(
@@ -106,6 +131,35 @@ export const VoiceGroup = HttpApiGroup.make("server.voice")
         summary: "Transcribe speech",
         description:
           "Experimental: may change without compatibility guarantees. Transcribe a recording to text with the server's experimental.transcription config: OpenAI Whisper with the server's OpenAI key by default, an OpenAI-compatible endpoint, or a local Whisper command.",
+      }),
+    ),
+  )
+  .add(
+    HttpApiEndpoint.get("voice.transcription", "/api/experimental/voice/transcription", {
+      success: Schema.Struct({ data: VoiceTranscriptionStatus }).annotate({
+        identifier: "VoiceTranscriptionResponse",
+      }),
+      error: [ServiceUnavailableError, LocationNotFoundError],
+    }).annotateMerge(
+      OpenApi.annotations({
+        identifier: "experimental.voice.transcription",
+        summary: "Get transcription status",
+        description:
+          "Experimental: may change without compatibility guarantees. Report what would transcribe voice input, whether it is ready, what local whisper.cpp setup still needs, and the progress of a running setup.",
+      }),
+    ),
+  )
+  .add(
+    HttpApiEndpoint.post("voice.setup", "/api/experimental/voice/transcription/setup", {
+      payload: Schema.Struct({ model: VoiceLocalModel }),
+      success: HttpApiSchema.NoContent,
+      error: [InvalidRequestError, ServiceUnavailableError, LocationNotFoundError],
+    }).annotateMerge(
+      OpenApi.annotations({
+        identifier: "experimental.voice.setup",
+        summary: "Set up local transcription",
+        description:
+          "Experimental: may change without compatibility guarantees. Start setting up whisper.cpp on the server in the background: install it with Homebrew when it is missing, then download the model when none is found. Poll the transcription status for progress.",
       }),
     ),
   )

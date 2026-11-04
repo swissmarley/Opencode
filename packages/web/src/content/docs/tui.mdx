@@ -75,6 +75,13 @@ OpenCode records with its built-in audio engine on macOS, Linux and Windows, so 
 
 The server transcribes the recording. It uses OpenAI Whisper when it has an OpenAI API key (a key stored with `/connect`, or `OPENAI_API_KEY`), and otherwise a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model it finds in `~/models`. To choose explicitly or use an OpenAI-compatible endpoint, set [`experimental.transcription`](/docs/config#voice-transcription) in `opencode.json`.
 
+If neither is set up, pressing the microphone opens **Set up voice input** instead of recording. Pick one of these:
+
+- **On this computer, English** or **On this computer, any language**: the server installs whisper.cpp with Homebrew if it is missing, then downloads a 142 MB model into `~/.local/share/opencode/whisper` and shows the progress. Without Homebrew, the dialog explains how to install whisper.cpp first.
+- **With an OpenAI API key**: type the key into the form. It is stored on the server like a key from `/connect`, which also connects OpenAI models.
+
+Run `/voice-setup` to open the same dialog at any time, for example to switch from OpenAI to whisper.cpp.
+
 ---
 
 ## Commands
@@ -330,6 +337,16 @@ Start voice input, or stop it and transcribe what you said into the prompt. [Lea
 ```
 
 **Keybind:** `ctrl+x space`, hold to talk
+
+---
+
+### voice-setup
+
+Choose how voice input turns speech into text: whisper.cpp on this computer, installed and downloaded for you, or an OpenAI API key typed into a form. [Learn more](#voice-input).
+
+```bash frame="none"
+/voice-setup
+```
 
 ---
 
