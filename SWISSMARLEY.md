@@ -109,10 +109,10 @@ session events as they happen.
 - **You stay in control.** The transcript is inserted at the cursor, spaced from the words around it, and nothing is
   sent until you press Enter.
 - **No extra tools to record.** OpenCode records with its built-in audio engine on macOS, Linux and Windows.
-- **OpenAI Whisper or fully local.** The OpenCode server transcribes the audio. By default it uses OpenAI Whisper with
-  the OpenAI key you connected, which never reaches the terminal. Point it at any OpenAI-compatible endpoint (a local
-  whisper.cpp or faster-whisper server, or a hosted one such as Groq), or run a local
-  [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model so no audio leaves your machine. See
+- **OpenAI Whisper or fully local.** The OpenCode server transcribes the audio. With an OpenAI key connected it uses
+  OpenAI Whisper, and the key never reaches the terminal. Without one it runs a local
+  [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model, so no audio leaves your machine. You can also point it
+  at any OpenAI-compatible endpoint, such as a faster-whisper server or Groq. See
   [Voice transcription](#voice-transcription) below.
 
 ## Before you start
@@ -214,8 +214,8 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
 - **Meet Tilde** in the bottom-right corner. Click it, drag it somewhere else, or type `/mascot` to hide it and bring
   it back.
 - **Dictate a prompt.** Hold `mic` at the right of the prompt, say what you want and let go. The first time, your
-  terminal app may ask for microphone access. Voice input needs an OpenAI API key from step 5, or one of the other
-  setups in [Voice transcription](#voice-transcription).
+  terminal app may ask for microphone access. Voice input uses your OpenAI API key from step 5 if you connected one,
+  and otherwise a local whisper.cpp model; see [Voice transcription](#voice-transcription).
 
 ### Step 7 (optional): Install it as your `opencode` command
 
@@ -334,11 +334,24 @@ left in the prompt and to send blocking tools to the background, so binding it h
 ### Voice transcription
 
 The OpenCode server, not the terminal, turns your recording into text, so its settings go in the server's config file,
-`~/.config/opencode/opencode.json`. Without any settings it uses OpenAI's `whisper-1` with the OpenAI API key you
-connected with `/connect` (or `OPENAI_API_KEY`). A ChatGPT sign-in can't transcribe audio.
+`~/.config/opencode/opencode.json`. Without any settings, it uses OpenAI's `whisper-1` when you connected an OpenAI
+API key with `/connect` (or set `OPENAI_API_KEY`), and a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp)
+model otherwise. A ChatGPT sign-in can't transcribe audio, so it counts as no key.
 
-To keep everything on your machine, install [whisper.cpp](https://github.com/ggml-org/whisper.cpp) so that
-`whisper-cli` is on your `PATH`, download a model such as `ggml-base.en.bin`, and add:
+To transcribe locally, install whisper.cpp and download a model into `~/models`. Nothing else is needed: OpenCode finds
+`whisper-cli` (Homebrew's folders included) and the first `ggml-*.bin` file in `~/.local/share/opencode/whisper` or
+`~/models`. On macOS:
+
+```bash
+brew install whisper-cpp
+```
+
+```bash
+mkdir -p ~/models && curl -L -o ~/models/ggml-base.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
+```
+
+`ggml-base.en` understands English only; for other languages download `ggml-base.bin` or `ggml-small.bin` instead. To
+use whisper.cpp even when an OpenAI key is connected, or to pick a model file elsewhere, add:
 
 ```json
 {
@@ -373,9 +386,9 @@ To change the voice shortcut, set `prompt.voice` under `keybinds` in `cli.json`,
 
 ## Troubleshooting
 
-**Voice input says it needs an OpenAI API key.**
-Connect an OpenAI API key with `/connect`, or set up a local model or another endpoint as described in
-[Voice transcription](#voice-transcription).
+**Transcription fails and asks for whisper.cpp or an OpenAI API key.**
+Install whisper.cpp and download a model as described in [Voice transcription](#voice-transcription), or connect an
+OpenAI API key with `/connect`. The message says which of the two pieces for local transcription is missing.
 
 **Voice input says "Couldn't open the microphone".**
 OpenCode tries the input you set in `voice.device`, then the system default, then every other input, and the message

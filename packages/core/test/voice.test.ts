@@ -9,10 +9,14 @@ import { ConfigExperimental } from "@opencode/schema/config/experimental"
 import type { ConfigTranscription } from "@opencode/schema/config/transcription"
 import { LayerNode } from "@opencode/util/effect/layer-node"
 import { FSUtil } from "@opencode/util/fs-util"
+import { Global } from "@opencode/util/global"
 import { AppProcess } from "@opencode/util/process"
 import { Effect, Layer } from "effect"
 import { HttpClient, type HttpClientRequest, HttpClientResponse } from "effect/http"
 import { TestClock } from "effect/testing"
+import fs from "node:fs/promises"
+import path from "node:path"
+import { tmpdirScoped } from "./fixture/tmpdir"
 import { testEffect } from "./lib/effect"
 
 const it = testEffect(Layer.empty)
@@ -77,11 +81,14 @@ const voiceLayer = (
   integration: Layer.Layer<Integration.Service>,
   executor: Layer.Layer<RequestExecutor.Service>,
   transcription?: ConfigTranscription.Info,
+  // No models are found in these folders unless a test puts one there.
+  global = Global.make({ data: "/nonexistent/opencode-data", home: "/nonexistent/opencode-home" }),
 ) =>
   Voice.layer.pipe(
     Layer.provide([
       integration,
       executor,
+      Layer.succeed(Global.Service, global),
       Config.testLayer(
         transcription
           ? [
@@ -269,6 +276,7 @@ const transcribe = (
   connections: Partial<Record<string, Integration.Info["connections"]>>,
   transcription: ConfigTranscription.Info | undefined,
   requests: HttpClientRequest.HttpClientRequest[] = [],
+  global?: Global.Interface,
 ) =>
   Effect.flatMap(Voice.Service, (voice) => voice.transcribe({ audio, mime: "audio/wav" })).pipe(
     Effect.provide(
@@ -276,6 +284,7 @@ const transcribe = (
         mockIntegration((id) => connections[id] ?? [], resolveCredential),
         recordingExecutor(requests, () => Response.json({ text: " Fix the login\n  bug. " })),
         transcription,
+        global,
       ),
     ),
   )
@@ -293,9 +302,18 @@ it.effect("transcribes with OpenAI Whisper using the server's OpenAI key", () =>
       ["https://api.openai.com/v1/audio/transcriptions", "Bearer sk-stored"],
     ])
 
-    const signInOnly = yield* transcribe({ openai: [credential("chatgpt", "oauth")] }, undefined).pipe(Effect.flip)
+    const signInOnly = yield* transcribe({ openai: [credential("chatgpt", "oauth")] }, { provider: "openai" }).pipe(
+      Effect.flip,
+    )
     expect(signInOnly).toMatchObject({ _tag: "Voice.UnavailableError", service: "openai" })
     expect(signInOnly.message).toContain("OPENAI_API_KEY")
+
+    // Without a key or a model, the error explains both ways to set voice input up.
+    const neither = yield* transcribe({ openai: [credential("chatgpt", "oauth")] }, undefined).pipe(Effect.flip)
+    expect(neither).toMatchObject({ _tag: "Voice.UnavailableError", service: "transcription" })
+    expect(neither.message).toContain("whisper.cpp")
+    expect(neither.message).toContain("OpenAI API key")
+    expect(neither.message).toContain("ggml-base.en.bin")
   }),
 )
 
@@ -329,12 +347,38 @@ it.live("transcribes locally with the configured command and its placeholders", 
 
     const missing = yield* transcribe({}, { provider: "local" }).pipe(Effect.flip)
     expect(missing._tag).toBe("Voice.InvalidRequestError")
-    expect(missing.message).toContain("experimental.transcription.model")
+    expect(missing.message).toContain("whisper.cpp")
 
     const failing = yield* transcribe(
       {},
       { provider: "local", command: [process.execPath, "-e", "process.exit(3)"] },
     ).pipe(Effect.flip)
     expect(failing).toMatchObject({ _tag: "Voice.UnavailableError", service: "local" })
+  }),
+)
+
+it.live("falls back to whisper.cpp without an OpenAI key, finding a downloaded model", () =>
+  Effect.gen(function* () {
+    const tmp = yield* tmpdirScoped()
+    const data = path.join(tmp.path, "data")
+    const home = path.join(tmp.path, "home")
+    yield* Effect.promise(async () => {
+      await fs.mkdir(path.join(data, "whisper"), { recursive: true })
+      await fs.mkdir(path.join(home, "models"), { recursive: true })
+      await fs.writeFile(path.join(data, "whisper", "ggml-small.bin"), "")
+      await fs.writeFile(path.join(data, "whisper", "notes.txt"), "")
+      await fs.writeFile(path.join(home, "models", "ggml-base.en.bin"), "")
+    })
+    const command = [process.execPath, "-e", "console.log(process.argv[1])", "{model}"]
+    const signInOnly = { openai: [credential("chatgpt", "oauth")] }
+
+    // OpenCode's data folder comes before ~/models.
+    expect(yield* transcribe(signInOnly, { command }, [], Global.make({ data, home }))).toEqual({
+      text: path.join(data, "whisper", "ggml-small.bin"),
+    })
+    yield* Effect.promise(() => fs.rm(path.join(data, "whisper"), { recursive: true }))
+    expect(yield* transcribe(signInOnly, { command }, [], Global.make({ data, home }))).toEqual({
+      text: path.join(home, "models", "ggml-base.en.bin"),
+    })
   }),
 )

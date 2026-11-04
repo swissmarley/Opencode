@@ -869,7 +869,7 @@ Experimental options are not stable. They may change or be removed without notic
 
 #### Voice transcription
 
-`experimental.transcription` sets how the server transcribes [voice input](/docs/tui#voice-input) from the TUI. Without it, the server uses OpenAI's `whisper-1` with its OpenAI API key, a key stored with `/connect` or `OPENAI_API_KEY`. A ChatGPT sign-in can't transcribe audio.
+`experimental.transcription` sets how the server transcribes [voice input](/docs/tui#voice-input) from the TUI. Without it, the server uses OpenAI's `whisper-1` when it has an OpenAI API key, a key stored with `/connect` or `OPENAI_API_KEY`, and a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model otherwise. A ChatGPT sign-in can't transcribe audio, so it counts as no key.
 
 ```json title="opencode.json"
 {
@@ -884,15 +884,15 @@ Experimental options are not stable. They may change or be removed without notic
 }
 ```
 
-- `provider` - `"openai"` (default) or `"local"`.
-- `model` - The transcription model, `whisper-1` by default. For `"local"`, the Whisper model file.
+- `provider` - `"openai"` or `"local"`. When omitted, OpenAI with the server's key, else local.
+- `model` - The transcription model, `whisper-1` by default. For local transcription, the Whisper model file; when omitted, the first `ggml-*.bin` in `~/.local/share/opencode/whisper` or `~/models`.
 - `language` - The spoken language as an ISO-639-1 code such as `"en"`. Detected automatically when omitted.
 - `prompt` - Words that guide spelling, such as project names and technical terms.
 - `base_url` - An OpenAI-compatible endpoint to use instead of OpenAI, such as a local whisper.cpp or faster-whisper server, or a hosted service.
 - `api_key` - The key for `base_url`, if it needs one. Use `{env:NAME}` to read it from the environment. The server's OpenAI key is only sent to OpenAI itself.
 - `command` - For `"local"`, the command to run instead of whisper.cpp's `whisper-cli`.
 
-To transcribe with a local [whisper.cpp](https://github.com/ggml-org/whisper.cpp) model, install `whisper-cli`, download a model, and point `model` at it. Nothing leaves your machine:
+Local transcription needs whisper.cpp's `whisper-cli` (`brew install whisper-cpp` on macOS; Homebrew's folders are searched even when the server's `PATH` lacks them) and a model such as [`ggml-base.en.bin`](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin) in `~/models`. Nothing leaves your machine. To use it even when the server has an OpenAI key, or to name the model file:
 
 ```json title="opencode.json"
 {

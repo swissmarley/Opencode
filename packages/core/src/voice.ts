@@ -14,6 +14,7 @@ import { RequestExecutor } from "@opencode/ai/route"
 import type { ConfigTranscription } from "@opencode/schema/config/transcription"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
 import { FSUtil } from "@opencode/util/fs-util"
+import { Global } from "@opencode/util/global"
 import { AppProcess } from "@opencode/util/process"
 import { Context, Effect, Layer, Redacted, Schema } from "effect"
 import { ChildProcess } from "effect/process"
@@ -23,6 +24,7 @@ import { Config } from "./config.js"
 import { Credential } from "./credential.js"
 import { requestExecutor } from "./effect/app-node-platform.js"
 import { Integration } from "./integration.js"
+import { which } from "./util/which.js"
 
 export interface ModelInfo {
   readonly model: string
@@ -80,6 +82,7 @@ export const layer = Layer.effect(
     const config = yield* Config.Service
     const fs = yield* FSUtil.Service
     const processes = yield* AppProcess.Service
+    const global = yield* Global.Service
     const transcriptions = yield* TranscriptionClient.Service
 
     // Integration lists the active credential first, then newer stored credentials, then non-empty env vars.
@@ -150,12 +153,11 @@ export const layer = Layer.effect(
 
     // OpenAI's own API takes the server's OpenAI key. Any other endpoint gets only the key configured for it, so the
     // OpenAI key never leaves for a third party.
-    const transcribeRemote = Effect.fnUntraced(function* (settings: ConfigTranscription.Info, input: TranscribeInput) {
-      const apiKey = settings.base_url
-        ? settings.api_key
-          ? Redacted.make(settings.api_key)
-          : false
-        : yield* openAIKey()
+    const transcribeRemote = Effect.fnUntraced(function* (
+      settings: ConfigTranscription.Info,
+      input: TranscribeInput,
+      apiKey: Redacted.Redacted<string> | false,
+    ) {
       const response = yield* ai.experimental.transcription
         .generate({
           model: configure({ apiKey, baseURL: settings.base_url }).transcription(settings.model ?? "whisper-1"),
@@ -190,9 +192,25 @@ export const layer = Layer.effect(
       return Redacted.make(credential.key)
     })
 
-    const transcribeLocal = Effect.fn(function* (settings: ConfigTranscription.Info, input: TranscribeInput) {
-      if (!settings.command && !settings.model)
-        return yield* new InvalidRequestError({ message: missingLocalModelMessage })
+    // A downloaded whisper.cpp model, so local transcription works without naming one.
+    const findModel = Effect.fnUntraced(function* () {
+      const directories = modelDirectories(global)
+      const found = yield* Effect.forEach(directories, (directory) =>
+        fs.readDirectory(directory).pipe(
+          Effect.map((names) => names.filter((name) => /^ggml-.+\.bin$/.test(name)).sort()),
+          Effect.map((names) => (names[0] ? path.join(directory, names[0]) : undefined)),
+          Effect.orElseSucceed(() => undefined),
+        ),
+      )
+      return found.find((item) => item !== undefined)
+    })
+
+    const transcribeLocal = Effect.fn(function* (
+      settings: ConfigTranscription.Info,
+      input: TranscribeInput,
+      model: string | undefined,
+      binary: string | null | undefined,
+    ) {
       const file = yield* fs.makeTempDirectoryScoped({ prefix: "opencode-voice-" }).pipe(
         Effect.map((dir) => path.join(dir, `speech.${audioExtension(input.mime)}`)),
         Effect.tap((file) => fs.writeFile(file, Buffer.from(input.audio, "base64"))),
@@ -200,13 +218,13 @@ export const layer = Layer.effect(
       )
       const values: Record<string, string> = {
         file,
-        model: expandHome(settings.model ?? ""),
+        model: model ?? "",
         language: settings.language ?? "auto",
         prompt: settings.prompt ?? "",
       }
-      const [command, ...args] = (settings.command ?? whisperCommand(settings.prompt !== undefined)).map((arg) =>
-        arg.replace(/\{(file|model|language|prompt)\}/g, (_, name: string) => values[name]),
-      )
+      const [command, ...args] = (
+        settings.command ?? whisperCommand(binary ?? "whisper-cli", settings.prompt !== undefined)
+      ).map((arg) => arg.replace(/\{(file|model|language|prompt)\}/g, (_, name: string) => values[name]))
       const result = yield* processes
         .run(ChildProcess.make(command, args, { extendEnv: true, stdin: "ignore" }), { timeout: "3 minutes" })
         .pipe(
@@ -218,12 +236,40 @@ export const layer = Layer.effect(
 
     const transcribe = Effect.fn("Voice.transcribe")(function* (input: TranscribeInput) {
       const settings = Config.latest(yield* config.entries(), "experimental")?.transcription ?? {}
-      const text =
-        settings.provider === "local"
-          ? yield* transcribeLocal(settings, input)
-          : yield* transcribeRemote(settings, input)
-      return { text: cleanTranscript(text) }
+      return { text: cleanTranscript(yield* route(settings, input)) }
     })
+
+    // Without a provider or base_url, the server's OpenAI key wins and whisper.cpp is the fallback, so voice input
+    // works out of the box on a machine with either one.
+    const route = Effect.fnUntraced(function* (settings: ConfigTranscription.Info, input: TranscribeInput) {
+      if (settings.base_url)
+        return yield* transcribeRemote(settings, input, settings.api_key ? Redacted.make(settings.api_key) : false)
+      if (settings.provider === "openai") return yield* transcribeRemote(settings, input, yield* openAIKey())
+      if (settings.provider !== "local") {
+        const key = yield* openAIKey().pipe(Effect.option)
+        if (key._tag === "Some") return yield* transcribeRemote(settings, input, key.value)
+      }
+      const model = settings.model ? expandHome(settings.model) : yield* findModel()
+      const binary = settings.command ? undefined : findWhisper()
+      const missing = localMissing(settings, binary, model)
+      if (missing)
+        return yield* settings.provider === "local"
+          ? new InvalidRequestError({ message: missing })
+          : new UnavailableError({ service: "transcription", message: `${missingTranscriptionMessage} ${missing}` })
+      return yield* transcribeLocal(settings, input, model, binary)
+    })
+
+    // What local transcription still needs, in words a person can act on, or undefined when it can run.
+    const localMissing = (settings: ConfigTranscription.Info, binary: string | null | undefined, model?: string) => {
+      if (settings.command) return undefined
+      const install = process.platform === "darwin" ? " (brew install whisper-cpp)" : ""
+      const directories = modelDirectories(global).join(" or ")
+      if (!binary)
+        return `Install whisper.cpp${install} so whisper-cli is on the PATH, and download a model such as ggml-base.en.bin into ${directories}.`
+      if (!model)
+        return `Download a whisper.cpp model such as ggml-base.en.bin into ${directories}, or set experimental.transcription.model to its path.`
+      return undefined
+    }
 
     return Service.of({ models, session, transcribe })
   }),
@@ -232,12 +278,12 @@ export const layer = Layer.effect(
 export const node = makeLocationNode({
   service: Service,
   layer,
-  deps: [Integration.node, Config.node, FSUtil.node, AppProcess.node, requestExecutor],
+  deps: [Integration.node, Config.node, FSUtil.node, AppProcess.node, Global.node, requestExecutor],
 })
 
 /** whisper.cpp prints one line per segment; these flags drop its timestamps and progress output. */
-const whisperCommand = (prompt: boolean) => [
-  "whisper-cli",
+const whisperCommand = (binary: string, prompt: boolean) => [
+  binary,
   "--model",
   "{model}",
   "--file",
@@ -265,6 +311,18 @@ const audioExtension = (mime: string) => {
 const expandHome = (file: string) =>
   file === "~" || file.startsWith("~/") ? path.join(os.homedir(), file.slice(1)) : file
 
+/**
+ * whisper.cpp's CLI. The background server may start without the login shell's PATH, so Homebrew's folders are
+ * searched too.
+ */
+const findWhisper = () => which("whisper-cli", undefined, ["/opt/homebrew/bin", "/usr/local/bin"].join(path.delimiter))
+
+/** Where downloaded whisper.cpp models are found when none is configured: OpenCode's data folder, then ~/models. */
+const modelDirectories = (global: Global.Interface) => [
+  path.join(global.data, "whisper"),
+  path.join(global.home, "models"),
+]
+
 /** OpenCode hosts GPT-Live on its OpenAI account, billed to the workspace whose credential starts a session. */
 const openCodeLive = { provider: "opencode", baseURL: "https://opencode.ai/inference/openai/v1" } as const
 
@@ -285,10 +343,10 @@ const sessionAccess = (provider: string, credential: Credential.Value) => {
 }
 
 const missingTranscriptionKeyMessage =
-  'Voice input needs an OpenAI API key on the server (a stored key or OPENAI_API_KEY). ChatGPT sign-in can\'t transcribe audio. To transcribe elsewhere, set experimental.transcription.base_url to an OpenAI-compatible endpoint or experimental.transcription.provider to "local".'
+  "Voice input needs an OpenAI API key on the server (a stored key or OPENAI_API_KEY). ChatGPT sign-in can't transcribe audio."
 
-const missingLocalModelMessage =
-  "Local voice input needs experimental.transcription.model, the path to a whisper.cpp model such as ~/models/ggml-base.en.bin, or a custom experimental.transcription.command."
+const missingTranscriptionMessage =
+  "Voice input transcribes with a local whisper.cpp model, or with OpenAI when the server has an OpenAI API key."
 
 const missingLiveKeyMessage =
   "GPT-Live needs an OpenAI API key (a stored key or OPENAI_API_KEY) or an OpenCode Console connection on the server. ChatGPT sign-in can't start voice sessions."
