@@ -8,6 +8,7 @@ import {
   parseSkin,
   setActiveSkin,
   setCustomSkins,
+  setSkinOverrides,
   SKIN_BORDERS,
   SKIN_SPINNERS,
 } from "../src/skin"
@@ -20,6 +21,24 @@ import { tmpdir } from "./fixture/fixture"
 afterEach(() => {
   setCustomSkins({})
   setActiveSkin(DEFAULT_SKIN)
+  setSkinOverrides({})
+})
+
+test("border and spinner settings replace the active skin's own until cleared", () => {
+  setActiveSkin("lcd-classic")
+  const skin = currentSkin()
+  setSkinOverrides({ border: "double", spinner: "pulse" })
+  expect(currentSkin().border).toEqual(SKIN_BORDERS.double)
+  expect(currentSkin().spinner).toEqual(SKIN_SPINNERS.pulse)
+  expect(SplitBorder.customBorderChars.vertical).toBe("║")
+  // The rest of the skin stays.
+  expect(currentSkin().tagline).toBe(skin.tagline)
+
+  setSkinOverrides({ spinner: "line" })
+  expect(currentSkin().border).toEqual(skin.border)
+  expect(currentSkin().spinner).toEqual(SKIN_SPINNERS.line)
+  setSkinOverrides({})
+  expect(currentSkin()).toBe(skin)
 })
 
 test("ships built-in skins whose themes resolve", () => {

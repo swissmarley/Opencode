@@ -72,6 +72,31 @@ You can select a theme by bringing up the theme select with the `/theme` command
 
 ---
 
+## Custom colors
+
+To keep a theme but change its colors, run `/appearance` and pick **Primary color** or **Accent color**. Moving through the list previews each color across the whole interface; press enter to keep it or escape to go back. **Custom** takes any hex color.
+
+- **Primary color** is used for selections, focus, links and list markers.
+- **Accent color** is used for headings, keywords and attention markers.
+- **Background** set to **terminal** shows your terminal's own background, such as a translucent or image background, instead of the theme's. Dialogs keep a solid background so they stay readable.
+
+The named colors are `red`, `orange`, `yellow`, `green`, `cyan`, `blue`, `purple` and `pink`. When the theme has its own shade of that color, OpenCode uses it, so the color fits the theme. The overrides apply on top of whichever theme you pick, in `~/.config/opencode/cli.json`:
+
+```json title="cli.json"
+{
+  "theme": {
+    "name": "tokyonight",
+    "primary": "green",
+    "accent": "#ff8800",
+    "transparent": true
+  }
+}
+```
+
+Font and text size are set by your terminal, not by OpenCode. The **Font and size** row in `/appearance` shows where to change them in the terminal you are using.
+
+---
+
 ## Custom themes
 
 OpenCode supports a flexible JSON-based theme system that allows users to create and customize themes easily.

@@ -67,6 +67,20 @@ export const Cursor = Schema.Struct({
   }),
 }).annotate({ description: "Terminal cursor settings" })
 
+/** Named colors the appearance menu offers. A theme's own hue of the same name is used when it defines one. */
+export const ThemeColorName = Schema.Literals(["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"])
+export type ThemeColorName = Schema.Schema.Type<typeof ThemeColorName>
+export const ThemeColor = Schema.Union([
+  ThemeColorName,
+  Schema.String.check(Schema.isPattern(/^#(?:[\da-f]{3}|[\da-f]{6})$/i)),
+])
+export type ThemeColor = Schema.Schema.Type<typeof ThemeColor>
+
+export const BorderStyle = Schema.Literals(["heavy", "light", "double", "block", "dashed", "ascii"])
+export type BorderStyle = Schema.Schema.Type<typeof BorderStyle>
+export const SpinnerStyle = Schema.Literals(["dots", "line", "arcs", "equalizer", "blocks", "pulse", "stars", "cursor"])
+export type SpinnerStyle = Schema.Schema.Type<typeof SpinnerStyle>
+
 export const Info = Schema.Struct({
   theme: Schema.optional(
     Schema.Struct({
@@ -74,11 +88,26 @@ export const Info = Schema.Struct({
       mode: Schema.optional(Schema.Literals(["system", "dark", "light"])).annotate({
         description: "Color mode; 'system' follows the terminal",
       }),
+      primary: Schema.optional(ThemeColor).annotate({
+        description:
+          "Primary color for selections, focus, links and list markers: a color name or #hex. Defaults to the theme's",
+      }),
+      accent: Schema.optional(ThemeColor).annotate({
+        description:
+          "Accent color for headings, keywords and attention markers: a color name or #hex. Defaults to the theme's",
+      }),
+      transparent: Schema.optional(Schema.Boolean).annotate({
+        description: "Show the terminal's own background instead of the theme's",
+      }),
     }),
   ).annotate({ description: "Color theme settings" }),
   skin: Schema.optional(Schema.String).annotate({
     description: "Interface skin: a bundled theme, border rail, spinner and logo. Defaults to 'opencode'",
   }),
+  border: Schema.optional(BorderStyle).annotate({
+    description: "Border rail beside messages and the prompt. Overrides the skin's",
+  }),
+  spinner: Schema.optional(SpinnerStyle).annotate({ description: "Spinner animation. Overrides the skin's" }),
   keybinds: Schema.optional(TuiKeybind.KeybindOverrides).annotate({ description: "Custom key bindings" }),
   plugins: Schema.optional(Schema.Array(Plugin)).annotate({
     description: "Ordered plugin enablement directives and external package declarations",

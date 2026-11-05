@@ -12,6 +12,8 @@ companion that keeps you company while the agent works:
   real time, says so in a speech bubble, and lets you approve or deny permission requests from any session.
 - **Voice input** lets you dictate prompts: hold the microphone button beside the prompt and talk, or click it to start
   and stop. The transcript lands in the prompt for you to edit before you send it.
+- **The appearance menu** (`/appearance`) gathers every design setting in one place, including your own primary and
+  accent colors on top of any theme.
 
 A skin never changes the mood: the background keeps running under every skin and only takes on the skin's colors.
 
@@ -68,6 +70,30 @@ A skin never changes the mood: the background keeps running under every skin and
   Escape to go back to your previous look.
 - **Your own skins.** Drop a JSON file in `~/.config/opencode/skins/` or a project's `.opencode/skins/`. See
   [the skins docs](packages/web/src/content/docs/skins.mdx) for the format.
+
+### The appearance menu
+
+Type `/appearance` (or `/design`) to open one menu with every look-and-feel setting, in four sections:
+
+| Section       | Settings                                                                           |
+| ------------- | ---------------------------------------------------------------------------------- |
+| **Colors**    | Theme, color mode (dark, light or system), primary color, accent color, background |
+| **Interface** | Skin, border rail, spinner, cursor shape, cursor blink                             |
+| **Motion**    | Mood, mascot, animations                                                           |
+| **Text**      | Font and size                                                                      |
+
+- **Change values in place.** `←`/`→` steps through a setting's values, and each change applies and saves at once.
+  `Enter` opens a picker for the theme, skin, mood and colors, which previews each choice live; `Escape` restores what
+  you had.
+- **Your own colors on any theme.** Pick a primary color (selections, focus, links, list markers) and an accent color
+  (headings, keywords, attention markers) from red, orange, yellow, green, cyan, blue, purple and pink, or type any
+  hex color. A named color uses the theme's own shade when it has one, so it fits the theme.
+- **Your terminal's background.** Set Background to `terminal` to see your terminal's own background, such as a
+  translucent or image one, behind the interface. Dialogs keep a solid background.
+- **Mix and match a skin.** Border and Spinner replace the skin's own while you keep the rest of the skin.
+- **Font and size.** A terminal app can't change the font or the text size: your terminal draws every character. This
+  row tells you which terminal you're in and where it sets both, for example `font-family` and `font-size` in
+  Ghostty's config file, plus its zoom shortcut.
 
 ### Tilde, the mascot
 
@@ -211,6 +237,7 @@ You can now ask OpenCode anything. Watch the vortex speed up while the reply str
 - **Type `/mood:<name>`**, such as `/mood:aurora`, `/mood:embers` or `/mood:off`, in the prompt to jump straight to a
   mood.
 - **Type `/skins`** to browse the skins with a live preview, then press Enter to keep one.
+- **Type `/appearance`** to change colors, borders, spinner, cursor and the rest of the look from one menu.
 - **Meet Tilde** in the bottom-right corner. Click it, drag it somewhere else, or type `/mascot` to hide it and bring
   it back.
 - **Dictate a prompt.** Hold `mic` at the right of the prompt, say what you want and let go. The first time, your
@@ -302,6 +329,9 @@ apply while OpenCode is running.
 | Setting      | Values                                                                                       | What it does                                                                                                          |
 | ------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `background` | `"vortex"`, `"watermark"`, `"matrix"`, `"ripple"`, `"warp"`, `"embers"`, `"aurora"`, `"off"` | Picks the background (the mood). Defaults to `"vortex"`.                                                              |
+| `theme`      | `{ "primary": "green", "accent": "#ff8800", "transparent": true }`                           | Color overrides on top of the theme. Colors are a name or a hex code; `transparent` shows the terminal's background.  |
+| `border`     | `"heavy"`, `"light"`, `"double"`, `"block"`, `"dashed"`, `"ascii"`                           | The border rail beside messages and the prompt, in place of the skin's.                                               |
+| `spinner`    | `"dots"`, `"line"`, `"arcs"`, `"equalizer"`, `"blocks"`, `"pulse"`, `"stars"`, `"cursor"`    | The spinner, in place of the skin's.                                                                                  |
 | `animations` | `true`, `false`                                                                              | With `false`, the background defaults to `"off"`. If you also set `background` yourself, it shows as a still picture. |
 | `mascot`     | `true`, `false`                                                                              | Shows Tilde, the mascot. On by default, off by default when `animations` is `false`.                                  |
 | `voice`      | `{ "button": false }`, `{ "device": "USB" }`                                                 | `button` shows or hides the microphone button (on by default). `device` picks a microphone by part of its name.       |
