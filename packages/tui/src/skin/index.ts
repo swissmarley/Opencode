@@ -2,6 +2,7 @@ import { Schema } from "effect"
 import { createSignal } from "solid-js"
 import { stringWidth } from "#string-width"
 import { SPINNER_FRAMES } from "../component/spinner-frames"
+import type { BorderStyle, SpinnerStyle } from "../config"
 import { setSkinThemes, type ThemeDocumentSource } from "../theme"
 import amberCrt from "./assets/amber-crt.json" with { type: "json" }
 import bubblegum from "./assets/bubblegum.json" with { type: "json" }
@@ -45,7 +46,7 @@ export const SKIN_BORDERS = {
   block: { vertical: "▌", cap: "▘" },
   dashed: { vertical: "╏", cap: "╹" },
   ascii: { vertical: "|", cap: "'" },
-} satisfies Record<string, SkinBorder>
+} satisfies Record<BorderStyle, SkinBorder>
 
 export const SKIN_SPINNERS = {
   dots: { frames: SPINNER_FRAMES, interval: 80 },
@@ -56,7 +57,7 @@ export const SKIN_SPINNERS = {
   pulse: { frames: ["·", "•", "●", "•"], interval: 140 },
   stars: { frames: ["+", "x", "*", "x"], interval: 120 },
   cursor: { frames: ["█", " "], interval: 500 },
-} satisfies Record<string, SkinSpinner>
+} satisfies Record<SpinnerStyle, SkinSpinner>
 
 const Glyph = Schema.String.check(
   Schema.makeFilter((value) => stringWidth(value) === 1, { expected: "a single-cell glyph" }),
@@ -117,13 +118,24 @@ setSkinThemes(BUILTIN_THEMES)
 
 const [customSkins, setCustomSkinRecords] = createSignal<Record<string, Skin>>({})
 const [activeID, setActiveID] = createSignal(DEFAULT_SKIN)
+const [overrides, setOverrides] = createSignal<SkinOverrides>({})
+
+/** The `border` and `spinner` settings, which replace the active skin's own while set. */
+export type SkinOverrides = { readonly border?: BorderStyle; readonly spinner?: SpinnerStyle }
 
 export function allSkins(): Record<string, Skin> {
   return { ...BUILTIN_SKINS, ...customSkins() }
 }
 
 export function currentSkin(): Skin {
-  return customSkins()[activeID()] ?? BUILTIN_SKINS[activeID()] ?? BUILTIN_SKINS[DEFAULT_SKIN]
+  const skin = customSkins()[activeID()] ?? BUILTIN_SKINS[activeID()] ?? BUILTIN_SKINS[DEFAULT_SKIN]
+  const override = overrides()
+  if (!override.border && !override.spinner) return skin
+  return {
+    ...skin,
+    border: override.border ? SKIN_BORDERS[override.border] : skin.border,
+    spinner: override.spinner ? SKIN_SPINNERS[override.spinner] : skin.spinner,
+  }
 }
 
 export function selectedSkin() {
@@ -133,6 +145,10 @@ export function selectedSkin() {
 /** Applies a skin's chrome. Colors are applied separately through the theme context. */
 export function setActiveSkin(id: string) {
   setActiveID(id)
+}
+
+export function setSkinOverrides(next: SkinOverrides) {
+  setOverrides(next)
 }
 
 /** Replaces the discovered skins and returns why each rejected one failed. */

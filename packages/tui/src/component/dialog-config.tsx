@@ -1,5 +1,5 @@
 import { createMemo, createSignal } from "solid-js"
-import { useConfig, useNewDesigns } from "../config"
+import { BorderStyle, SpinnerStyle, ThemeColorName, useConfig, useNewDesigns } from "../config"
 import { useThemes } from "../context/theme"
 import { useDialog, type DialogContext } from "../ui/dialog"
 import { DialogSelect, DialogSelectChoice } from "../ui/dialog-select"
@@ -10,11 +10,17 @@ import { DialogMoodList, MOODS } from "./dialog-mood-list"
 import { VORTEX_MODES } from "../ui/vortex"
 import { vortexMode } from "./vortex-background"
 import { mascotEnabled } from "../mascot/mascot"
-import { allSkins, DEFAULT_SKIN } from "../skin"
+import { allSkins, DEFAULT_SKIN, SKIN_BORDERS, SKIN_SPINNERS, type SkinBorder, type SkinSpinner } from "../skin"
+import { DialogThemeColor, THEME_COLOR_ROLES } from "./dialog-theme-color"
+import { DialogTerminalFont, detectTerminal } from "./dialog-terminal-font"
+
+const GROUPS = ["Colors", "Interface", "Motion", "Text"] as const
 
 type Setting = {
   title: string
   category: string
+  /** Section in the `/appearance` menu; settings without one are only in Settings. */
+  group?: (typeof GROUPS)[number]
   path: string[]
   /** Shown below the list while the setting is selected, under the "new-designs" experiment. */
   description: string
@@ -26,51 +32,54 @@ type Setting = {
   max?: number
   format?: (value: unknown) => string
   keywords?: readonly string[]
-  /** Under the "new-designs" experiment, enter opens this picker instead of cycling. ←/→ still cycle. */
-  open?: (dialog: DialogContext) => void
+  /**
+   * Enter opens this picker instead of cycling in the appearance menu, under the "new-designs" experiment, and for a
+   * setting with nothing to cycle. ←/→ still cycle. `back` reopens the menu it came from.
+   */
+  open?: (dialog: DialogContext, back: () => void) => void
 }
+
+const borders: Partial<Record<string, SkinBorder>> = SKIN_BORDERS
+const spinners: Partial<Record<string, SkinSpinner>> = SKIN_SPINNERS
 
 export const settings: Setting[] = [
   {
     title: "Theme",
     category: "Appearance",
+    group: "Colors",
     path: ["theme", "name"],
     description: "Color theme used across the interface",
     default: "opencode",
     keywords: ["color scheme", "colors"],
-    open: (dialog) =>
-      dialog.replace(() => (
-        <DialogThemeList onClose={() => dialog.replace(() => <DialogConfig current="theme.name" />)} />
-      )),
+    open: (dialog, back) => dialog.replace(() => <DialogThemeList onClose={back} />),
   },
   {
     title: "Skin",
     category: "Appearance",
+    group: "Interface",
     path: ["skin"],
     description: "Bundled look: theme, border rail, spinner and logo",
     default: DEFAULT_SKIN,
     keywords: ["look", "style", "retro", "chrome"],
     format: (value) => allSkins()[String(value)]?.name ?? String(value),
-    open: (dialog) =>
-      dialog.replace(() => <DialogSkinList onClose={() => dialog.replace(() => <DialogConfig current="skin" />)} />),
+    open: (dialog, back) => dialog.replace(() => <DialogSkinList onClose={back} />),
   },
   {
     title: "Mood",
     category: "Appearance",
+    group: "Motion",
     path: ["background"],
     description: "Animated background behind the interface",
     default: "vortex",
     values: VORTEX_MODES,
     keywords: ["background", "vortex", "matrix", "watermark", "ripple", "warp", "embers", "aurora", "animation"],
     format: (value) => Object.entries(MOODS).find(([mood]) => mood === value)?.[1].title ?? String(value),
-    open: (dialog) =>
-      dialog.replace(() => (
-        <DialogMoodList onClose={() => dialog.replace(() => <DialogConfig current="background" />)} />
-      )),
+    open: (dialog, back) => dialog.replace(() => <DialogMoodList onClose={back} />),
   },
   {
     title: "Mascot",
     category: "Appearance",
+    group: "Motion",
     path: ["mascot"],
     description: "Tilde, the companion that acts out what the agent is doing and asks for approvals",
     default: true,
@@ -81,6 +90,7 @@ export const settings: Setting[] = [
   {
     title: "Color mode",
     category: "Appearance",
+    group: "Colors",
     path: ["theme", "mode"],
     description: "Dark or light variant, or follow the system",
     default: "system",
@@ -90,12 +100,93 @@ export const settings: Setting[] = [
   {
     title: "Animations",
     category: "Appearance",
+    group: "Motion",
     path: ["animations"],
     description: "Whether spinners and transitions animate",
     default: false,
     values: [false, true],
     labels: ["off", "on"],
     keywords: ["motion", "effects"],
+  },
+  ...(["primary", "accent"] as const).map((role) => ({
+    title: THEME_COLOR_ROLES[role].title,
+    category: "Appearance",
+    group: "Colors" as const,
+    path: ["theme", role],
+    description: THEME_COLOR_ROLES[role].description,
+    default: undefined,
+    values: [undefined, ...ThemeColorName.literals],
+    format: (value: unknown) => (value === undefined ? "theme" : String(value)),
+    keywords: ["color", "colour", "highlight", "tint", "hex", role === "primary" ? "selection" : "headings"],
+    open: (dialog: DialogContext, back: () => void) =>
+      dialog.replace(() => <DialogThemeColor role={role} onClose={back} />),
+  })),
+  {
+    title: "Background",
+    category: "Appearance",
+    group: "Colors",
+    path: ["theme", "transparent"],
+    description: "The theme's background, or your terminal's own, such as a translucent or image background",
+    default: false,
+    values: [false, true],
+    labels: ["theme", "terminal"],
+    keywords: ["transparent", "transparency", "opacity", "translucent", "background color"],
+  },
+  {
+    title: "Border",
+    category: "Appearance",
+    group: "Interface",
+    path: ["border"],
+    description: "Rail drawn beside messages and the prompt, in place of the skin's",
+    default: undefined,
+    values: [undefined, ...BorderStyle.literals],
+    format: (value) => (value === undefined ? "from skin" : `${value} ${borders[String(value)]?.vertical}`),
+    keywords: ["rail", "line", "frame", "ascii"],
+  },
+  {
+    title: "Spinner",
+    category: "Appearance",
+    group: "Interface",
+    path: ["spinner"],
+    description: "Animation shown while the agent works, in place of the skin's",
+    default: undefined,
+    values: [undefined, ...SpinnerStyle.literals],
+    format: (value) => (value === undefined ? "from skin" : `${value} ${spinners[String(value)]?.frames[0]}`),
+    keywords: ["loading", "progress", "indicator"],
+  },
+  {
+    title: "Cursor",
+    category: "Appearance",
+    group: "Interface",
+    path: ["cursor", "style"],
+    description: "Shape of the text cursor in inputs",
+    default: "block",
+    values: ["block", "underline", "line", "default"],
+    labels: ["block", "underline", "line", "terminal default"],
+    keywords: ["caret", "beam", "bar"],
+  },
+  {
+    title: "Cursor blink",
+    category: "Appearance",
+    group: "Interface",
+    path: ["cursor", "blinking"],
+    description: "Whether the text cursor blinks",
+    default: true,
+    values: [false, true],
+    labels: ["off", "on"],
+    keywords: ["caret", "blinking"],
+  },
+  {
+    title: "Font and size",
+    category: "Appearance",
+    group: "Text",
+    // Not a setting: the terminal owns both, so this row only explains where to change them.
+    path: ["font"],
+    description: "Set by your terminal; shows where to change them",
+    default: undefined,
+    format: () => detectTerminal()?.name ?? "terminal",
+    keywords: ["font", "font size", "text size", "zoom", "typeface", "bigger", "smaller", "scale"],
+    open: (dialog, back) => dialog.replace(() => <DialogTerminalFont onClose={back} />),
   },
   {
     title: "Sidebar",
@@ -426,15 +517,21 @@ export function settingID(setting: Setting) {
   return setting.path.join(".")
 }
 
-export function DialogConfig(props: { current?: string }) {
+/** Settings, or with `appearance` only the look-and-feel rows, grouped into sections, for `/appearance`. */
+export function DialogConfig(props: { current?: string; appearance?: boolean }) {
   const config = useConfig()
   const newDesigns = useNewDesigns()
   const dialog = useDialog()
   const toast = useToast()
   const themes = useThemes()
+  const list = props.appearance
+    ? settings
+        .filter((setting) => setting.group)
+        .toSorted((a, b) => GROUPS.indexOf(a.group!) - GROUPS.indexOf(b.group!))
+    : settings
   const current = Math.max(
     0,
-    settings.findIndex((setting) => settingID(setting) === props.current),
+    list.findIndex((setting) => settingID(setting) === props.current),
   )
   const [selected, setSelected] = createSignal(current)
   const [saving, setSaving] = createSignal(false)
@@ -462,10 +559,11 @@ export function DialogConfig(props: { current?: string }) {
     const index = setting.values?.indexOf(current)
     return index === undefined || index < 0 ? String(current) : (setting.labels?.[index] ?? String(current))
   }
+  const cyclable = (setting: Setting) => values(setting) !== undefined || setting.step !== undefined
   const options = createMemo(() =>
-    settings.map((setting, index) => ({
+    list.map((setting, index) => ({
       title: setting.title,
-      category: setting.category,
+      category: props.appearance ? setting.group : setting.category,
       searchText: setting.keywords?.join(" "),
       footer: newDesigns() ? (
         <DialogSelectChoice value={display(setting)} active={selected() === index} open={setting.open !== undefined} />
@@ -479,8 +577,8 @@ export function DialogConfig(props: { current?: string }) {
   )
 
   async function change(direction: number, index = selected()) {
-    if (saving()) return
-    const setting = settings[index]
+    const setting = list[index]
+    if (saving() || !cyclable(setting)) return
     const current = value(setting)
     const choices = values(setting)
     const next = choices
@@ -502,9 +600,9 @@ export function DialogConfig(props: { current?: string }) {
 
   return (
     <DialogSelect
-      title="Settings"
+      title={props.appearance ? "Appearance" : "Settings"}
       searchInTitle
-      titlePlaceholder="Search settings"
+      titlePlaceholder={props.appearance ? "Search appearance" : "Search settings"}
       options={options()}
       // Under new designs the opening setting is focused without the current-item marker; changing a value keeps the
       // selection where it is.
@@ -514,8 +612,11 @@ export function DialogConfig(props: { current?: string }) {
       filterThreshold={0.7}
       onMove={(option) => setSelected(option.value)}
       onSelect={(option) => {
-        const open = settings[option.value].open
-        if (newDesigns() && open) return open(dialog)
+        const setting = list[option.value]
+        if (setting.open && (props.appearance || newDesigns() || !cyclable(setting)))
+          return setting.open(dialog, () =>
+            dialog.replace(() => <DialogConfig current={settingID(setting)} appearance={props.appearance} />),
+          )
         void change(1, option.value)
       }}
       footerHints={newDesigns() ? [] : [{ title: "change", label: "←/→" }]}

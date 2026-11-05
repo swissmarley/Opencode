@@ -21,6 +21,7 @@ import { generateSystem, terminalMode } from "../theme/system"
 import { discoverSkins, discoverThemes } from "../theme/discovery"
 import { setCustomSkins } from "../skin"
 import { createComponentTheme, type ComponentTheme } from "../theme/component"
+import { customizeTheme, themeColors, type ThemeColors } from "../theme/customize"
 import { createEffect, createMemo, createSignal, onCleanup, onMount, type Accessor, type ParentProps } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { createSimpleContext } from "./helper"
@@ -313,13 +314,14 @@ const themeContext = createSimpleContext({
     const selected = createMemo(() => {
       const sources = available()
       const name = sources[store.active] ? store.active : "opencode"
+      const colors = themeColors(config.theme)
       try {
-        return loadTheme(sources[name], name, store.mode, newDesigns())
+        return loadTheme(sources[name], name, store.mode, newDesigns(), colors)
       } catch (error) {
         if (name === "opencode") throw error
         themeErrors.emit(name, error)
         setStore("active", "opencode")
-        return loadTheme(sources.opencode, "opencode", store.mode, newDesigns())
+        return loadTheme(sources.opencode, "opencode", store.mode, newDesigns(), colors)
       }
     })
     const modes = () => selected().modes
@@ -407,11 +409,17 @@ function usablePalette(colors: TerminalColors | undefined): colors is TerminalCo
   )
 }
 
-function loadTheme(source: ThemeDocumentSource, name: string, requested: "dark" | "light", newDesigns: boolean) {
+function loadTheme(
+  source: ThemeDocumentSource,
+  name: string,
+  requested: "dark" | "light",
+  newDesigns: boolean,
+  colors: ThemeColors,
+) {
   const document = parseTheme(source, name, { newDesigns })
   const modes = themeModes(document)
   const mode = modes.includes(requested) ? requested : (modes[0] ?? requested)
-  return { modes, mode, theme: resolveThemeDocument(document, mode) }
+  return { modes, mode, theme: resolveThemeDocument(customizeTheme(document, mode, colors), mode) }
 }
 
 export function createSyntaxStyleMemo(factory: () => SyntaxStyle) {

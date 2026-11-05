@@ -395,7 +395,8 @@ export function selectedForeground(theme: Theme, background: RGBA) {
     : RGBA.fromInts(255, 255, 255)
 }
 
-function hueScale(color: RGBA, mode: "light" | "dark") {
+/** A nine-step scale anchored at 200 on `color`, fading toward the mode's background by 900. */
+export function hueScale(color: RGBA, mode: "light" | "dark") {
   const value = toOklch(color)
   const anchor = 200
   const endpoint = mode === "light" ? Math.max(0.97, value.l) : Math.min(0.18, value.l)

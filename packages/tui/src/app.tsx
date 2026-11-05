@@ -76,7 +76,7 @@ import { claim } from "./util/highlights"
 import { DialogThemeList } from "./component/dialog-theme-list"
 import { DialogSkinList } from "./component/dialog-skin-list"
 import { DialogMoodList } from "./component/dialog-mood-list"
-import { allSkins, DEFAULT_SKIN, setActiveSkin } from "./skin"
+import { allSkins, DEFAULT_SKIN, setActiveSkin, setSkinOverrides } from "./skin"
 import { DialogHelp } from "./ui/dialog-help"
 import { DialogAgent } from "./component/dialog-agent"
 import { DialogSessionList } from "./component/dialog-session-list"
@@ -782,6 +782,7 @@ function App() {
       },
     ),
   )
+  createEffect(() => setSkinOverrides({ border: config.data.border, spinner: config.data.spinner }))
 
   const connected = useConnected()
   const appCommands = createMemo(() =>
@@ -1082,6 +1083,15 @@ function App() {
         slash: { name: "settings" },
         run: () => {
           dialog.replace(() => <DialogConfig />)
+        },
+        category: "System",
+      },
+      {
+        name: "appearance.open",
+        title: "Customize appearance",
+        slash: { name: "appearance", aliases: ["design"] },
+        run: () => {
+          dialog.replace(() => <DialogConfig appearance />)
         },
         category: "System",
       },
