@@ -3,8 +3,7 @@ export * as TodoTool from "./todo.js"
 import { ToolFailure } from "@opencode/ai/effect"
 import type { Context } from "@opencode/plugin/effect/plugin"
 import { Effect, Schema } from "effect"
-import { Config } from "../../config.js"
-import { ConfigEntryObserver } from "../../config/plugin/entry-observer.js"
+import { Flag } from "../../flag.js"
 import { Permission } from "../../permission.js"
 import DESCRIPTION from "../todowrite.txt"
 
@@ -43,11 +42,9 @@ export const summarize = (todos: ReadonlyArray<Info>) => {
 export const Plugin = {
   id: "opencode.tool.todo",
   effect: Effect.fn("TodoTool.Plugin")(function* (ctx: Context) {
-    const config = yield* Config.Service
     const permission = yield* Permission.Service
-    // Internal plugins are not re-run on config changes, so reload the tool transform instead.
-    const loaded = yield* ConfigEntryObserver.observe(config, ctx.event, ctx.tool.reload())
-    const enabled = () => Config.latest(loaded.entries, "experimental")?.todo === true
+    const flags = yield* Flag.Service
+    const enabled = () => flags.current().todo.enabled
 
     yield* ctx.tool
       .transform((editor) => {

@@ -3,12 +3,15 @@ import { RGBA } from "@opentui/core"
 import { resolveThemeDocument, themeModes, type HueScale } from "@opencode/theme/tui"
 import { ThemeColorName } from "../src/config"
 import { detectTerminal } from "../src/component/dialog-terminal-font"
-import { allThemes, getOpenCodeTheme, parseTheme } from "../src/theme"
+import { allThemes, getOpenCodeClassicTheme, getOpenCodeTheme, parseTheme } from "../src/theme"
 import { customizeTheme, setThemeColorPreview, swatch, themeColors } from "../src/theme/customize"
 
 afterEach(() => setThemeColorPreview(undefined))
 
 const opencode = () => getOpenCodeTheme()
+// The redesigned "opencode" theme derives few tokens from the interactive hue and none from the accent hue, so
+// tests of what follows a chosen color use the classic theme, whose tokens are all derived from its hues.
+const classic = () => getOpenCodeClassicTheme()
 const hex = (color: RGBA) =>
   `#${color
     .toInts()
@@ -24,7 +27,7 @@ test("leaves the theme untouched without overrides", () => {
 })
 
 test("a named primary color reuses the theme's own hue of that name", () => {
-  const theme = resolveThemeDocument(customizeTheme(opencode(), "dark", { primary: "blue" }), "dark")
+  const theme = resolveThemeDocument(customizeTheme(classic(), "dark", { primary: "blue" }), "dark")
   expect(hex(theme.hue.interactive[200])).toBe(hex(hues(theme).blue![200]))
   // Tokens the theme derives from the primary hue follow it.
   expect(hex(theme.text.formfield.selected)).toBe(hex(hues(theme).blue![200]))
@@ -39,11 +42,11 @@ test("a name the theme has no hue for falls back to a readable swatch for the mo
 })
 
 test("a custom hex accent drives accent tokens", () => {
-  const theme = resolveThemeDocument(customizeTheme(opencode(), "dark", { accent: "#ff8800" }), "dark")
+  const theme = resolveThemeDocument(customizeTheme(classic(), "dark", { accent: "#ff8800" }), "dark")
   expect(hex(theme.hue.accent[200])).toBe("#ff8800")
   expect(hex(theme.markdown.heading)).toBe("#ff8800")
   // Only the chosen role changes.
-  const stock = resolveThemeDocument(opencode(), "dark")
+  const stock = resolveThemeDocument(classic(), "dark")
   expect(hex(theme.hue.interactive[200])).toBe(hex(stock.hue.interactive[200]))
 })
 

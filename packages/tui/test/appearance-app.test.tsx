@@ -75,7 +75,36 @@ test("/appearance cycles a border with the arrow keys and explains font and size
   await setup.waitForFrame(() => menuOpen(setup) && highlight(setup, "Font and size") !== undefined)
 })
 
+test("/appearance shows interface animations as on until they are turned off", async () => {
+  await using state = await tmpdir()
+  // No `animations` setting: they run, so the row has to say so.
+  await using setup = await createAppFixture({
+    state: state.path,
+    width: 110,
+    height: 40,
+    config: { background: "off", mascot: false },
+  })
+  await openAppearance(setup)
+  setup.mockInput.typeText("animations")
+  await setup.waitForFrame(() => highlight(setup, "Animations") !== undefined)
+  expect(rowValue(setup, "Animations")).toBe("on")
+
+  setup.mockInput.pressArrow("left")
+  await setup.waitFor(() => setup.config().animations === false)
+  await setup.waitForFrame(() => rowValue(setup, "Animations") === "off")
+
+  setup.mockInput.pressArrow("right")
+  await setup.waitFor(() => setup.config().animations === true)
+  await setup.waitForFrame(() => rowValue(setup, "Animations") === "on")
+})
+
 const menuOpen = (setup: Setup) => setup.captureCharFrame().includes("Appearance")
+
+/** The value shown at the end of the menu row named `title`, without the arrows around a highlighted row's value. */
+function rowValue(setup: Setup, title: string) {
+  const row = setup.captureCharFrame().split("\n").find((line) => line.includes(title))
+  return row?.replace(title, "").replace(/[‹›↵]/g, "").trim()
+}
 
 /**
  * Background of the dialog row whose text starts with `title`, while it is the highlighted one. Read spans only inside

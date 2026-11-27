@@ -1,5 +1,6 @@
-import { Component } from "solid-js"
+import { Show, type Component } from "solid-js"
 import { Switch } from "@opencode/ui/switch"
+import { Select } from "@opencode/ui/select"
 import { useLanguage } from "@/runtime/i18n/language"
 import { SettingsList } from "@/settings/list"
 import { useSettings } from "@/settings/model"
@@ -29,41 +30,77 @@ export const SettingsExperimental: Component = () => {
         <div class="settings-section">
           <SettingsList>
             <SettingsRow
-              title={language.t("settings.experimental.row.newIcons.title")}
-              description={language.t("settings.experimental.row.newIcons.description")}
+              title={language.t("settings.experimental.row.tabGroups.title")}
+              description={language.t("settings.experimental.row.tabGroups.description")}
             >
-              <div data-action="settings-new-icons">
+              <div data-action="settings-tab-groups">
                 <Switch
-                  checked={settings.general.newIcons()}
-                  onChange={(checked) => settings.general.setNewIcons(checked)}
-                />
-              </div>
-            </SettingsRow>
-            <SettingsRow
-              title={language.t("settings.experimental.row.foldUserMessages.title")}
-              description={language.t("settings.experimental.row.foldUserMessages.description")}
-            >
-              <div data-action="settings-fold-user-messages">
-                <Switch
-                  checked={settings.general.foldUserMessages()}
-                  onChange={(checked) => settings.general.setFoldUserMessages(checked)}
-                />
-              </div>
-            </SettingsRow>
-            <SettingsRow
-              title={language.t("settings.experimental.row.newQuestionUI.title")}
-              description={language.t("settings.experimental.row.newQuestionUI.description")}
-            >
-              <div data-action="settings-new-question-ui">
-                <Switch
-                  checked={settings.general.newQuestionUI()}
-                  onChange={(checked) => settings.general.setNewQuestionUI(checked)}
+                  checked={settings.general.tabGroups()}
+                  onChange={(checked) => settings.general.setTabGroups(checked)}
                   hideLabel
                 >
-                  {language.t("settings.experimental.row.newQuestionUI.title")}
+                  {language.t("settings.experimental.row.tabGroups.title")}
                 </Switch>
               </div>
             </SettingsRow>
+            <SettingsRow
+              title={language.t("settings.experimental.row.sidebarOrganize.title")}
+              description={language.t("settings.experimental.row.sidebarOrganize.description")}
+            >
+              <Select
+                data-action="settings-sidebar-organize"
+                options={settings.general.sidebarOrganizeOptions}
+                current={settings.general.sidebarOrganize()}
+                label={(mode) => language.t(`settings.experimental.sidebarOrganize.${mode}`)}
+                onSelect={(mode) => mode && settings.general.setSidebarOrganize(mode)}
+                placement="bottom-end"
+                gutter={6}
+              />
+            </SettingsRow>
+            <SettingsRow
+              title={language.t("settings.experimental.row.newTimeline.title")}
+              description={language.t("settings.experimental.row.newTimeline.description")}
+            >
+              <div data-action="settings-new-timeline">
+                <Switch
+                  checked={settings.general.newTimeline()}
+                  onChange={(checked) => settings.general.setNewTimeline(checked)}
+                  hideLabel
+                >
+                  {language.t("settings.experimental.row.newTimeline.title")}
+                </Switch>
+              </div>
+            </SettingsRow>
+            <SettingsRow
+              title={language.t("settings.experimental.row.automations.title")}
+              description={language.t("settings.experimental.row.automations.description")}
+            >
+              <div data-action="settings-automations">
+                <Switch
+                  checked={settings.general.automations()}
+                  onChange={(checked) => settings.general.setAutomations(checked)}
+                  hideLabel
+                >
+                  {language.t("settings.experimental.row.automations.title")}
+                </Switch>
+              </div>
+            </SettingsRow>
+            <Show when={settings.general.questionComposerAvailable}>
+              <SettingsRow
+                title={language.t("settings.experimental.row.questionComposer.title")}
+                description={language.t("settings.experimental.row.questionComposer.description")}
+              >
+                <div data-action="settings-question-composer">
+                  <Switch
+                    checked={settings.general.questionComposer()}
+                    onChange={(checked) => settings.general.setQuestionComposer(checked)}
+                    hideLabel
+                  >
+                    {language.t("settings.experimental.row.questionComposer.title")}
+                  </Switch>
+                </div>
+              </SettingsRow>
+            </Show>
           </SettingsList>
         </div>
       </div>

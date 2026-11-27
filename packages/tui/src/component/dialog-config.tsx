@@ -103,7 +103,8 @@ export const settings: Setting[] = [
     group: "Motion",
     path: ["animations"],
     description: "Whether spinners and transitions animate",
-    default: false,
+    // Everything that reads `animations` treats an unset value as on.
+    default: true,
     values: [false, true],
     labels: ["off", "on"],
     keywords: ["motion", "effects"],
@@ -208,6 +209,16 @@ export const settings: Setting[] = [
     keywords: ["scroll bar"],
   },
   {
+    title: "Scroll on send",
+    category: "Session",
+    path: ["session", "submit_scroll"],
+    description: "Whether sending a prompt jumps to the latest message",
+    default: "bottom",
+    values: ["bottom", "keep"],
+    labels: ["jump to latest", "keep position"],
+    keywords: ["submit", "scroll position", "jump to latest", "follow"],
+  },
+  {
     title: "Thinking",
     category: "Session",
     path: ["session", "thinking"],
@@ -239,7 +250,7 @@ export const settings: Setting[] = [
     category: "Session",
     path: ["session", "verbosity"],
     description: "How much tool activity is shown in the chat",
-    default: "medium",
+    default: "low",
     values: ["low", "medium", "high"],
     keywords: ["detail", "activity", "summary", "transcript"],
   },
@@ -541,7 +552,8 @@ export function DialogConfig(props: { current?: string; appearance?: boolean }) 
       if (!result || typeof result !== "object") return undefined
       return (result as Record<string, unknown>)[key]
     }, config.data)
-    if (setting.path.join(".") === "theme.name") return current ?? themes.selected
+    // The theme context resolves aliases and missing themes, so it names what is actually shown.
+    if (setting.path.join(".") === "theme.name") return themes.selected
     if (setting.path.join(".") === "background") return vortexMode(config.data)
     if (setting.path.join(".") === "mascot") return mascotEnabled(config.data)
     return current ?? setting.default

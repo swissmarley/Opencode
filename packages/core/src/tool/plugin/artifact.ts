@@ -5,8 +5,7 @@ import type { Context } from "@opencode/plugin/effect/plugin"
 import { optional } from "@opencode/schema/schema"
 import { Effect, Schema, Stream } from "effect"
 import { Artifact } from "../../artifact.js"
-import { Config } from "../../config.js"
-import { ConfigEntryObserver } from "../../config/plugin/entry-observer.js"
+import { Flag } from "../../flag.js"
 
 export const CreateToolInput = Schema.Struct({
   title: Schema.String.annotate({ description: "Human-readable artifact title." }),
@@ -46,7 +45,6 @@ const DeleteToolOutput = Schema.Struct({
 export const Plugin = {
   id: "opencode.tool.artifact",
   effect: Effect.fn("ArtifactTools.Plugin")(function* (ctx: Context) {
-    const config = yield* Config.Service
     const artifacts = yield* Artifact.Service
 
     const promptSnapshot = { text: yield* renderCreateDescription(artifacts) }
@@ -55,13 +53,13 @@ export const Plugin = {
       yield* ctx.tool.reload()
     })
 
-    const loaded = yield* ConfigEntryObserver.observe(config, ctx.event, refreshTools)
     yield* ctx.event.subscribe({ types: [Artifact.Event.Updated.type] }).pipe(
       Stream.runForEach(() => refreshTools),
       Effect.forkScoped({ startImmediately: true }),
     )
 
-    const enabled = () => Config.latest(loaded.entries, "experimental")?.artifacts === true
+    const flags = yield* Flag.Service
+    const enabled = () => flags.current().artifacts.enabled
     const failure = (error: { readonly message: string }) => new ToolFailure({ message: error.message, error })
 
     yield* ctx.tool
