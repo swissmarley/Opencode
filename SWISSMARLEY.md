@@ -69,7 +69,7 @@ A skin never changes the mood: the background keeps running under every skin and
 - **Live preview.** `/skins` repaints the whole interface as you move through the list. Press Enter to keep a skin or
   Escape to go back to your previous look.
 - **Your own skins.** Drop a JSON file in `~/.config/opencode/skins/` or a project's `.opencode/skins/`. See
-  [the skins docs](packages/web/src/content/docs/skins.mdx) for the format.
+  [the skins docs](services/site/src/docs/v1/content/skins.mdx) for the format.
 
 ### The appearance menu
 
@@ -417,7 +417,7 @@ To use an OpenAI-compatible endpoint instead, such as a local faster-whisper ser
 ```
 
 You can also set `language` (such as `"en"`, detected automatically otherwise) and a `prompt` with names and terms you
-use, to help with spelling. See [the config docs](packages/web/src/content/docs/config.mdx#voice-transcription) for
+use, to help with spelling. See [the config docs](services/site/src/docs/v1/content/config.mdx#voice-transcription) for
 every option. Your OpenAI key is only ever sent to OpenAI itself, never to a `base_url`.
 
 To change the voice shortcut, set `prompt.voice` under `keybinds` in `cli.json`, for example `"prompt.voice": "alt+m"`.

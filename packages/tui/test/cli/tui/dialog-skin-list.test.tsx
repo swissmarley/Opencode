@@ -48,7 +48,8 @@ test("restores the original skin and theme when cancelled", async () => {
     fixture.app.mockInput.pressEscape()
     await fixture.app.waitForFrame((frame) => frame.includes("┃rail") && !frame.includes("Search skins"))
     expect(selectedSkin()).toBe(DEFAULT_SKIN)
-    expect(fixture.themes.selected).toBe("opencode")
+    // Back on the theme the config named before the dialog previewed any skin's own.
+    expect(fixture.themes.selected).toBe(createTuiResolvedConfig().theme!.name!)
     expect(fixture.saved().skin).toBeUndefined()
   } finally {
     fixture.app.renderer.destroy()

@@ -1,9 +1,9 @@
 <p align="center">
   <a href="https://opencode.ai">
     <picture>
-      <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="packages/console/app/src/asset/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src="packages/console/app/src/asset/logo-ornate-light.svg" alt="OpenCode logo">
+      <source srcset=".github/assets/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
+      <source srcset=".github/assets/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
+      <img src=".github/assets/logo-ornate-light.svg" alt="OpenCode logo">
     </picture>
   </a>
 </p>
@@ -46,7 +46,7 @@
 > prompts with OpenAI Whisper or a local Whisper model, to the terminal UI. It is not built by the OpenCode team and
 > is not affiliated with them in any way. To set it up, see [SWISSMARLEY.md](SWISSMARLEY.md).
 
-[![OpenCode Terminal UI](packages/web/src/assets/lander/screenshot.png)](https://opencode.ai)
+[![OpenCode Terminal UI](services/site/public/v1/docs/assets/lander/screenshot.png)](https://opencode.ai)
 
 > [!NOTE]
 > This fork restyles the terminal UI along two independent axes, so any skin works with any mood:
@@ -54,7 +54,7 @@
 > - **Skin**: the look of the interface itself, in the spirit of 2000s media player skins. A skin bundles a color
 >   theme, the border rail beside messages and the prompt, the spinner and the home screen logo. Pick one with
 >   `/skins`, or set `"skin"` in `tui.json`. Seven skins are built in, and you can add your own as JSON files in
->   `skins/`. See [the skins docs](packages/web/src/content/docs/skins.mdx).
+>   `skins/`. See [the skins docs](services/site/src/docs/v1/content/skins.mdx).
 > - **Mood**: the animated background behind the interface: the interactive vortex, its watermark variant, the
 >   matrix rain, the ripple pond, the warp starfield, the embers fire, the aurora, or off. Browse them with a live
 >   preview using `/mood`, jump straight to one with `/mood:<name>` (for example `/mood:aurora` or `/mood:off`),
@@ -116,11 +116,11 @@ OpenCode includes two built-in agents you can switch between with the `Tab` key.
 Also included is a **general** subagent for complex searches and multistep tasks.
 This is used internally and can be invoked using `@general` in messages.
 
-Learn more about [agents](https://opencode.ai/v2/docs/agents).
+Learn more about [agents](https://opencode.ai/docs/agents).
 
 ### Documentation
 
-For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/v2/docs).
+For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/docs).
 
 ### Contributing
 
