@@ -144,7 +144,7 @@ afterEach(() => {
   Object.defineProperty(navigator, "mediaDevices", savedMediaDevices ?? missing)
 })
 
-type Voice = OpenCodeClient["experimental"]["voice"]
+type Voice = Pick<OpenCodeClient["experimental"]["voice"], "models" | "session">
 
 const live = {
   model: "gpt-live-1",

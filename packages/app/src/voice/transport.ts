@@ -53,7 +53,7 @@ export class VoiceTransport {
 
   constructor(
     private readonly inputOptions: {
-      voice: OpenCodeClient["experimental"]["voice"]
+      voice: Pick<OpenCodeClient["experimental"]["voice"], "models" | "session">
       event: (event: VoiceEvent) => void
       levels: (input: number, output: number) => void
       dropped: () => void
