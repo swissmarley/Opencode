@@ -103,7 +103,8 @@ export const settings: Setting[] = [
     group: "Motion",
     path: ["animations"],
     description: "Whether spinners and transitions animate",
-    default: false,
+    // Everything that reads `animations` treats an unset value as on.
+    default: true,
     values: [false, true],
     labels: ["off", "on"],
     keywords: ["motion", "effects"],
